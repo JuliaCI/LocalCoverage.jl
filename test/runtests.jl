@@ -1,5 +1,10 @@
 using LocalCoverage
 using Base.Test
 
-# write your own tests here
-@test 1 == 2
+@testset "coverage generation and cleanup" begin
+    @test !isfile("coverage/lcov.info")
+    generate_coverage("LocalCoverage"; genhtml = false)
+    @test isfile("coverage/lcov.info")
+    clean_coverage("LocalCoverage")
+    @test !isdir("coverage")
+end
