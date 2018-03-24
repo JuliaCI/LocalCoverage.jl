@@ -21,7 +21,7 @@ Generating HTML needs the `genhtml` utility, which is part of [LCOV](http://ltp.
 sudo apt install lcov
 ```
 
-Note that the code in this package assumes a reasonably recent `lcov` version when calling `genhtml`, ideally `1.13`, but `1.12` should work too. This is not checked.
+Note that the code in this package assumes a reasonably recent `lcov` version when calling `genhtml`, ideally `1.13`, but `1.12` should work too. This is not checked. See the discussion of [issue #1](https://github.com/tpapp/LocalCoverage.jl/issues/1) for a workaround.
 
 ## Usage
 
