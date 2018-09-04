@@ -2,7 +2,7 @@ try
     verstring = read(`genhtml -v`, String)
     m = match(r"^.*(\d.\d+)$", verstring)
     if m ≡ nothing
-        warn("Could not parse `genhtml -v` version information, please open an issue.")
+        @warn "Could not parse `genhtml -v` version information, please open an issue."
     else
         ver = VersionNumber(m[1])
         OLDVERWARN = """
@@ -12,5 +12,5 @@ try
         ver ≥ v"1.12" || warn(OLDVERWARN)
     end
 catch
-    warn("Could not find `genhtml`, you need to install it to generate HTML reports.")
+    @warn "Could not find `genhtml`, you need to install it to generate HTML reports."
 end

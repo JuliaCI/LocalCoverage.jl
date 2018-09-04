@@ -2,6 +2,7 @@ module LocalCoverage
 
 using Coverage
 using DocStringExtensions
+import Pkg
 
 export generate_coverage, open_coverage, clean_coverage
 
