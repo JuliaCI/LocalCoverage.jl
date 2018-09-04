@@ -31,5 +31,3 @@ generate_coverage(pkg)  # generate coverage information
 open_coverage(pkg)      # open in a browser
 clean_coverage(pkg)     # cleanup
 ```
-
-Works fine with [RoguePkg.jl](https://github.com/tpapp/RoguePkg.jl) for local packages.

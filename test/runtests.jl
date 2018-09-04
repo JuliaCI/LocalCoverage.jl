@@ -1,10 +1,10 @@
-using LocalCoverage
-using Compat.Test
+using LocalCoverage, Test
 
-lockfile = "/tmp/testingLocalCoverage" # prevent infinite recursion with Pkg.test
+lockfile = "/tmp/testingLocalCoverage" # prevent infinite recursion when testing
+
+covdir = normpath(joinpath(@__DIR__, "..", "coverage"))
 
 if !isfile(lockfile)
-    covdir = Pkg.dir("LocalCoverage", "coverage")
     tracefile = joinpath(covdir, "lcov.info")
     @test !isfile(tracefile)
     touch(lockfile)
