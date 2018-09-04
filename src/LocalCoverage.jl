@@ -1,4 +1,3 @@
-__precompile__()
 module LocalCoverage
 
 using Coverage
@@ -13,7 +12,7 @@ const COVDIR = "coverage"
 const LCOVINFO = "lcov.info"
 
 """
-    $SIGNATURES
+$(SIGNATURES)
 
 Open the HTML coverage results in a browser for `pkg` if they exist.
 
@@ -41,7 +40,7 @@ function open_coverage(pkg)
 end
 
 """
-    $SIGNATURES
+$(SIGNATURES)
 
 Generate a coverage report for package `pkg`.
 
@@ -70,7 +69,7 @@ function generate_coverage(pkg; genhtml = true)
 end
 
 """
-    clean_coverage(pkg)
+$(SIGNATURES)
 
 Clean up after [`generate_coverage`](@ref).
 """

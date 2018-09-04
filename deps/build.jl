@@ -1,5 +1,3 @@
-using Compat
-
 try
     verstring = read(`genhtml -v`, String)
     m = match(r"^.*(\d.\d+)$", verstring)
