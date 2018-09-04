@@ -22,15 +22,15 @@ See [`generate_coverage`](@ref).
 function open_coverage(pkg)
     htmlfile = Pkg.dir(pkg, COVDIR, "index.html")
     if !isfile(htmlfile)
-        warn("Not found, run generate_coverage(pkg) first.")
+        @warn("Not found, run generate_coverage(pkg) first.")
         return nothing
     end
     try
-        if is_apple()
+        if Sys.isapple()
             run(`open $htmlfile`)
-        elseif is_linux() || is_bsd()
+        elseif Sys.islinux() || Sys.isbsd()
             run(`xdg-open $htmlfile`)
-        elseif is_windows()
+        elseif Sys.iswindows()
             run(`start $htmlfile`)
         end
     catch e
