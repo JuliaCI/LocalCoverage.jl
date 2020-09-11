@@ -27,7 +27,8 @@ Note that the code in this package assumes a reasonably recent `lcov` version wh
 
 ```julia
 using LocalCoverage
-generate_coverage(pkg)  # generate coverage information
-open_coverage(pkg)      # open in a browser
-clean_coverage(pkg)     # cleanup
+import Foo              # import the target package for coverage
+generate_coverage(Foo)  # generate coverage information
+open_coverage(Foo)      # open in a browser
+clean_coverage(Foo)     # cleanup
 ```
