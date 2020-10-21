@@ -9,31 +9,48 @@ This is a collection of trivial functions to facilitate generating and exploring
 
 ## Installation
 
-This package is not (yet) registered. You need to install it with
-
 ```julia
-Pkg.clone("https://github.com/tpapp/LocalCoverage.jl.git")
+Pkg.add("LocalCoverage")
 ```
+or `]add LocalCoverage` from the Julia REPL.
 
-Generating HTML needs the `genhtml` utility, which is part of [LCOV](http://ltp.sourceforge.net/coverage/lcov.php). On Debian/Ubuntu systems, use
-
-```sh
-sudo apt install lcov
-```
-
-On Arch/Manjaro, `lcov` is available via the AUR
-
-```sh
-yay -S lcov
-```
+### Optional Dependencies
+The package has several optional features which require additional dependencies.
+[`lcov`](https://github.com/linux-test-project/lcov) is required for generating HTML
+output.  You can install it via
+- Debian/Ubuntu: `sudo apt install lcov`
+- Arch/Manjaro: `yay -S lcov`
 
 Note that the code in this package assumes a reasonably recent `lcov` version when calling `genhtml`, ideally `1.13`, but `1.12` should work too. This only checked when building this package, and does not prevent installation, only emits a warning. See the discussion of [issue #1](https://github.com/tpapp/LocalCoverage.jl/issues/1) for a workaround.
 
-## Usage
+`LocalCoverage` also provides an option to generate a
+[Cobertura](https://cobertura.github.io/cobertura/) XML, which is used by JVM-related test
+suites such as Jenkins.  Using this requires the Python module
+[`lcov_cobertura`](https://github.com/eriwen/lcov-to-cobertura-xml).  With Python
+installed, you can install this module via `pip install lcov_cobertura`.
 
+## Usage
+When generating test coverage, Julia places annotated `*.cov` source code files in the
+same directory as the source code itself.  In addition, summary files will be placed in
+the `coverage` subdirectory of the package directory.  We recommend using this package
+with packages added with the `Pkg.dev` installation option (which allows for easy
+manipulation of the package directory).
+
+To generate test coverage files do
 ```julia
 using LocalCoverage
-generate_coverage(pkg)  # generate coverage information
-open_coverage(pkg)      # open in a browser
-clean_coverage(pkg)     # cleanup
+# pkg is the package name as a string, e.g. "LocalCoverage"
+generate_coverage(pkg, genhtml=true, show_summary=true, genxml=false) # defaults shown
+```
+You can then navigate to the `coverage` subdirectory of the package directory (e.g.
+`~/.julia/dev/PackageName/coverage`) and see the generated coverage summaries.
+
+To open the coverage report HTML in a browser do
+```julia
+open_coverage(pkg)
+```
+
+To delete all coverage files do
+```julia
+clean_coverage(pkg, rm_directory=true) # defaults shown
 ```

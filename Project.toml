@@ -1,7 +1,7 @@
 name = "LocalCoverage"
 uuid = "5f6e1e16-694c-5876-87ef-16b5274f298e"
 authors = ["Tamas K. Papp <tkpapp@gmail.com>"]
-version = "0.1.1"
+version = "0.2.0"
 
 [deps]
 Coverage = "a2441757-f6aa-5fb2-8edb-039e3f45d037"
@@ -10,6 +10,11 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+julia = "≥ 1.1"
+Coverage = "1"
+DocStringExtensions = "0.8"
 
 [targets]
 test = ["Test"]

@@ -12,6 +12,8 @@ const COVDIR = "coverage"
 "Coverage tracefile."
 const LCOVINFO = "lcov.info"
 
+const PYTHON = get!(ENV, "PYTHON", isnothing(Sys.which("python3")) ? "python" : "python3")
+
 
 """
 $(SIGNATURES)
@@ -70,12 +72,29 @@ end
 coverage_summary(coverage) = @info(coverage_summary_string(coverage))
 
 """
+    generate_xml(pkg, filename="cov.xml")
+
+Generate a coverage Cobertura XML in the package `coverage` directory.
+
+This requires the Python package `lcov_cobertura`, available in PyPl via
+`pip install lcov_cobertura`.
+"""
+function generate_xml(pkg, filename="cov.xml")
+    run(Cmd(Cmd([PYTHON, "-m", "lcov_cobertura", "lcov.info", "-o", filename]),
+            dir=joinpath(pkgdir(pkg),COVDIR)))
+    @info("generated cobertura XML $filename")
+end
+
+"""
 $(SIGNATURES)
 
 Generate a coverage report for package `pkg`.
 
 When `genhtml`, the corresponding external command will be called to generate a
 HTML report. This can be found in eg the package `lcov` on Debian/Ubuntu.
+
+If `genxml` is true, will generate a Cobertura XML in the `coverage` directory
+(requires Python package `lcov_cobertura`, see `generate_xml`).
 
 If `show_summary` is true, a summary will be printed to `stdout`.
 
@@ -85,7 +104,7 @@ is placed in `Pkg.dir(pkg, \"$(COVDIR)\")`. The summary is in
 
 Use [`clean_coverage`](@ref) for cleaning.
 """
-function generate_coverage(pkg; genhtml=true, show_summary=true)
+function generate_coverage(pkg; genhtml=true, show_summary=true, genxml=false)
     Pkg.test(pkg; coverage = true)
     coverage = cd(pkgdir(pkg)) do
         coverage = Coverage.process_folder()
@@ -96,9 +115,11 @@ function generate_coverage(pkg; genhtml=true, show_summary=true)
             branch = strip(read(`git rev-parse --abbrev-ref HEAD`, String))
             title = "on branch $(branch)"
             run(`genhtml -t $(title) -o $(COVDIR) $(tracefile)`)
+            @info("generated coverage HTML")
         end
         coverage
     end
+    genxml && generate_xml(pkg)
     show_summary && coverage_summary(coverage)
     coverage
 end
