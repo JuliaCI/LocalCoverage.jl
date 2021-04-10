@@ -12,8 +12,6 @@ const COVDIR = "coverage"
 "Coverage tracefile."
 const LCOVINFO = "lcov.info"
 
-const JULIA_BASEDIR = joinpath(Sys.BINDIR, Base.DATAROOTDIR, "julia", "base")
-
 """
 $(SIGNATURES)
 
@@ -78,11 +76,14 @@ Clean up after [`generate_coverage`](@ref).
 """
 function clean_coverage(pkg)
     Coverage.clean_folder(Pkg.dir(pkg))
-    try
-        Coverage.clean_folder(JULIA_BASEDIR)
-    catch e
-        if !(e isa SystemError #= eg. permission denied =#) 
-            rethrow()
+    for path in DEPOT_PATH
+        isdir(path) || continue
+        try
+            Coverage.clean_folder(path)
+        catch e
+            if !(e isa SystemError #= eg. permission denied =#)
+                rethrow()
+            end
         end
     end
     rm(Pkg.dir(pkg, COVDIR); force = true, recursive = true)
