@@ -2,6 +2,8 @@ module LocalCoverage
 
 using Coverage
 using DocStringExtensions
+using Printf
+using PrettyTables
 import Pkg
 
 export generate_coverage, open_coverage, clean_coverage, coverage_summary
@@ -57,19 +59,67 @@ end
 """
 $(SIGNATURES)
 
-Returns a string giving some covery details in human readable form.
-
-**TODO:** make more informative.
+Returns a table giving coverage details by file in human readable form:
+- column 1: source file name
+- column 2: tuple (lines_hit, lines_tracked)
+- column 3: coverage fraction
 """
-function coverage_summary_string(coverage)
-    n, d = get_summary(coverage)
-    """
-    Covered lines: $n
-    Total lines: $d
-    Coverage: $(n/d)
-    """
+function coverage_summary_table(coverage)
+    n = length(coverage)
+    tab = Array{Any, 2}(undef, 1+n, 3)
+    total_hit = 0
+    total_tracked    = 0
+
+    for (i, f) in enumerate(coverage)
+        hit     = count(x->!isnothing(x) && x>0, f.coverage)
+        tracked = count(x->!isnothing(x),        f.coverage)
+
+        total_hit     += hit
+        total_tracked += tracked
+
+        tab[i,:] .= (f.filename, (hit, tracked),
+                     100 * hit / tracked)
+    end
+
+    tab[n+1, :] .= ("TOTAL", (total_hit, total_tracked),
+                    100 * total_hit / total_tracked)
+    tab
 end
-coverage_summary(coverage) = @info(coverage_summary_string(coverage))
+
+"""
+$(SIGNATURES)
+
+Pretty-prints a table giving coverage details by file.
+"""
+function coverage_summary(coverage)
+    tab = coverage_summary_table(coverage)
+
+    highlighters = (
+        Highlighter((data,i,j)->j==3 && data[i,j] <= 50,
+                    bold       = true,
+                    foreground = :red),
+        Highlighter((data,i,j)->j==3 && data[i,j] <= 70,
+                    foreground = :yellow),
+        Highlighter((data,i,j)->j==3 && data[i,j] >= 90,
+                    foreground = :green),
+    )
+
+    formatter(value, i, j) = if j==3
+        isnan(value) ? "-" : @sprintf("%3.0f%%", value)
+    elseif j==2
+        hit, tracked = value
+        @sprintf("%3d / %3d", hit, tracked)
+    else
+        value
+    end
+
+    pretty_table(tab,
+                 ["File name", "Lines hit", "Coverage"],
+                 alignment = [:l, :r, :r],
+                 highlighters = highlighters,
+                 body_hlines = [size(tab, 1)-1],
+                 formatters = formatter)
+end
 
 """
     generate_xml(pkg, filename="cov.xml")
