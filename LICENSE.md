@@ -1,6 +1,6 @@
 The LocalCoverage.jl package is licensed under the MIT "Expat" License:
 
-> Copyright (c) 2018: Tamas K. Papp.
+> Copyright (c) 2018–2021: Tamas K. Papp.
 >
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
