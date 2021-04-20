@@ -1,8 +1,8 @@
 # LocalCoverage.jl
 
 ![lifecycle](https://img.shields.io/badge/lifecycle-maturing-blue.svg)
-[![build](https://github.com/tpapp/LocalCoverage.jl/workflows/CI/badge.svg)](https://github.com/tpapp/LocalCoverage.jl/actions?query=workflow%3ACI)
-[![codecov.io](http://codecov.io/github/tpapp/LocalCoverage.jl/coverage.svg?branch=master)](http://codecov.io/github/tpapp/LocalCoverage.jl?branch=master)
+[![build](https://github.com/JuliaCI/LocalCoverage.jl/workflows/CI/badge.svg)](https://github.com/JuliaCI/LocalCoverage.jl/actions?query=workflow%3ACI)
+[![codecov.io](http://codecov.io/github/JuliaCI/LocalCoverage.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaCI/LocalCoverage.jl?branch=master)
 
 This is a collection of trivial functions to facilitate generating and exploring test coverage information for Julia packages *locally*, without using any remote/cloud services.
 
