@@ -162,7 +162,12 @@ function generate_coverage(pkg; genhtml=true, show_summary=true, genxml=false)
         tracefile = "$(COVDIR)/lcov.info"
         Coverage.LCOV.writefile(tracefile, coverage)
         if genhtml
-            branch = strip(read(`git rev-parse --abbrev-ref HEAD`, String))
+            branch =
+                try
+                    strip(read(`git rev-parse --abbrev-ref HEAD`, String))
+                catch
+                    @warn "git branch could not be detected"
+                end
             title = "on branch $(branch)"
             run(`genhtml -t $(title) -o $(COVDIR) $(tracefile)`)
             @info("generated coverage HTML")
