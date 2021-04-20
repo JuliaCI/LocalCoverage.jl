@@ -20,7 +20,7 @@ output.  You can install it via
 - Debian/Ubuntu: `sudo apt install lcov`
 - Arch/Manjaro: `yay -S lcov`
 
-Note that the code in this package assumes a reasonably recent `lcov` version when calling `genhtml`, ideally `1.13`, but `1.12` should work too. This only checked when building this package, and does not prevent installation, only emits a warning. See the discussion of [issue #1](https://github.com/tpapp/LocalCoverage.jl/issues/1) for a workaround.
+Note that the code in this package assumes a reasonably recent `lcov` version when calling `genhtml`, ideally `1.13`, but `1.12` should work too. This does not prevent installation, only emits a warning.
 
 `LocalCoverage` also provides an option to generate a
 [Cobertura](https://cobertura.github.io/cobertura/) XML, which is used by JVM-related test
@@ -29,6 +29,7 @@ suites such as Jenkins.  Using this requires the Python module
 installed, you can install this module via `pip install lcov_cobertura`.
 
 ## Usage
+
 When generating test coverage, Julia places annotated `*.cov` source code files in the
 same directory as the source code itself.  In addition, summary files will be placed in
 the `coverage` subdirectory of the package directory.  We recommend using this package
