@@ -169,7 +169,12 @@ function generate_coverage(pkg; genhtml=true, show_summary=true, genxml=false)
                     @warn "git branch could not be detected"
                 end
             title = "on branch $(branch)"
-            run(`genhtml -t $(title) -o $(COVDIR) $(tracefile)`)
+            try
+                run(`genhtml -t $(title) -o $(COVDIR) $(tracefile)`)
+            catch e
+                error("Failed to run genhtml. Check that lcov is installed (see the README).",
+                      "\nError message: ", sprint(Base.showerror, e))
+            end
             @info("generated coverage HTML")
         end
         coverage
