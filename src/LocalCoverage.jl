@@ -1,6 +1,6 @@
 module LocalCoverage
 
-using Coverage
+using CoverageTools
 using DocStringExtensions
 using Printf
 using PrettyTables
@@ -157,10 +157,10 @@ Use [`clean_coverage`](@ref) for cleaning.
 function generate_coverage(pkg; genhtml=true, show_summary=true, genxml=false)
     Pkg.test(pkg; coverage = true)
     coverage = cd(pkgdir(pkg)) do
-        coverage = Coverage.process_folder()
+        coverage = CoverageTools.process_folder()
         isdir(COVDIR) || mkdir(COVDIR)
         tracefile = "$(COVDIR)/lcov.info"
-        Coverage.LCOV.writefile(tracefile, coverage)
+        CoverageTools.LCOV.writefile(tracefile, coverage)
         if genhtml
             branch =
                 try
@@ -195,7 +195,7 @@ If `rm_directory`, will delete the coverage directory, otherwise only deletes
 function clean_coverage(pkg;
                         coverage_directory::AbstractString=COVDIR,
                         rm_directory::Bool=true)
-    Coverage.clean_folder(pkgdir(pkg))
+    CoverageTools.clean_folder(pkgdir(pkg))
     rm_directory && rm(joinpath(pkgdir(pkg), coverage_directory); force = true, recursive = true)
 end
 
