@@ -130,7 +130,7 @@ This requires the Python package `lcov_cobertura`, available in PyPl via
 `pip install lcov_cobertura`.
 """
 function generate_xml(pkg, filename="cov.xml")
-    run(Cmd(Cmd([PYTHON, "-m", "lcov_cobertura", "lcov.info", "-o", filename]),
+    run(Cmd(Cmd(["lcov_cobertura", "lcov.info", "-o", filename]),
             dir=joinpath(pkgdir(pkg),COVDIR)))
     @info("generated cobertura XML $filename")
 end
