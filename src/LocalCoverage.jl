@@ -126,7 +126,7 @@ end
 
 Generate a coverage Cobertura XML in the package `coverage` directory.
 
-This requires the Python package `lcov_cobertura`, available in PyPl via
+This requires the Python package `lcov_cobertura` (>= v2.0.1), available in PyPl via
 `pip install lcov_cobertura`.
 """
 function generate_xml(pkg, filename="cov.xml")
