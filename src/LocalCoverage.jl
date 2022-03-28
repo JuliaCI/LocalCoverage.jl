@@ -6,7 +6,7 @@ using Printf
 using PrettyTables
 import Pkg
 
-export generate_coverage, open_coverage, clean_coverage, coverage_summary
+export test_generate_coverage, generate_coverage, open_coverage, clean_coverage, coverage_summary
 
 "Directory for coverage results."
 const COVDIR = "coverage"
@@ -35,7 +35,7 @@ Open the HTML coverage results in a browser for `pkg` if they exist.
 See [`generate_coverage`](@ref).
 """
 function open_coverage(pkg;
-                       coverage_file::AbstractString=joinpath(COVDIR, "index.html"))
+    coverage_file::AbstractString=joinpath(COVDIR, "index.html"))
     htmlfile = joinpath(pkgdir(pkg), coverage_file)
     if !isfile(htmlfile)
         @warn("Not found, run generate_coverage(pkg) first.")
@@ -51,7 +51,7 @@ function open_coverage(pkg;
         end
     catch e
         error("Failed to open the generated $(htmlfile)\n",
-              "Error: ", sprint(Base.showerror, e))
+            "Error: ", sprint(Base.showerror, e))
     end
     nothing
 end
@@ -66,23 +66,23 @@ Returns a table giving coverage details by file in human readable form:
 """
 function coverage_summary_table(coverage)
     n = length(coverage)
-    tab = Array{Any, 2}(undef, 1+n, 3)
+    tab = Array{Any,2}(undef, 1 + n, 3)
     total_hit = 0
-    total_tracked    = 0
+    total_tracked = 0
 
     for (i, f) in enumerate(coverage)
-        hit     = count(x->!isnothing(x) && x>0, f.coverage)
-        tracked = count(x->!isnothing(x),        f.coverage)
+        hit = count(x -> !isnothing(x) && x > 0, f.coverage)
+        tracked = count(x -> !isnothing(x), f.coverage)
 
-        total_hit     += hit
+        total_hit += hit
         total_tracked += tracked
 
-        tab[i,:] .= (f.filename, (hit, tracked),
-                     100 * hit / tracked)
+        tab[i, :] .= (f.filename, (hit, tracked),
+            100 * hit / tracked)
     end
 
     tab[n+1, :] .= ("TOTAL", (total_hit, total_tracked),
-                    100 * total_hit / total_tracked)
+        100 * total_hit / total_tracked)
     tab
 end
 
@@ -95,30 +95,31 @@ function coverage_summary(coverage)
     tab = coverage_summary_table(coverage)
 
     highlighters = (
-        Highlighter((data,i,j)->j==3 && data[i,j] <= 50,
-                    bold       = true,
-                    foreground = :red),
-        Highlighter((data,i,j)->j==3 && data[i,j] <= 70,
-                    foreground = :yellow),
-        Highlighter((data,i,j)->j==3 && data[i,j] >= 90,
-                    foreground = :green),
+        Highlighter((data, i, j) -> j == 3 && data[i, j] <= 50,
+            bold=true,
+            foreground=:red),
+        Highlighter((data, i, j) -> j == 3 && data[i, j] <= 70,
+            foreground=:yellow),
+        Highlighter((data, i, j) -> j == 3 && data[i, j] >= 90,
+            foreground=:green),
     )
 
-    formatter(value, i, j) = if j==3
-        isnan(value) ? "-" : @sprintf("%3.0f%%", value)
-    elseif j==2
-        hit, tracked = value
-        @sprintf("%3d / %3d", hit, tracked)
-    else
-        value
-    end
+    formatter(value, i, j) =
+        if j == 3
+            isnan(value) ? "-" : @sprintf("%3.0f%%", value)
+        elseif j == 2
+            hit, tracked = value
+            @sprintf("%3d / %3d", hit, tracked)
+        else
+            value
+        end
 
     pretty_table(tab,
-                 ["File name", "Lines hit", "Coverage"],
-                 alignment = [:l, :r, :r],
-                 highlighters = highlighters,
-                 body_hlines = [size(tab, 1)-1],
-                 formatters = formatter)
+        ["File name", "Lines hit", "Coverage"],
+        alignment=[:l, :r, :r],
+        highlighters=highlighters,
+        body_hlines=[size(tab, 1) - 1],
+        formatters=formatter)
 end
 
 """
@@ -131,7 +132,7 @@ This requires the Python package `lcov_cobertura` (>= v2.0.1), available in PyPl
 """
 function generate_xml(pkg, filename="cov.xml")
     run(Cmd(Cmd(["lcov_cobertura", "lcov.info", "-o", filename]),
-            dir=joinpath(pkgdir(pkg),COVDIR)))
+        dir=joinpath(pkgdir(pkg), COVDIR)))
     @info("generated cobertura XML $filename")
 end
 
@@ -155,7 +156,6 @@ is placed in `Pkg.dir(pkg, \"$(COVDIR)\")`. The summary is in
 Use [`clean_coverage`](@ref) for cleaning.
 """
 function generate_coverage(pkg; genhtml=true, show_summary=true, genxml=false)
-    Pkg.test(pkg; coverage = true)
     coverage = cd(pkgdir(pkg)) do
         coverage = CoverageTools.process_folder()
         isdir(COVDIR) || mkdir(COVDIR)
@@ -173,7 +173,7 @@ function generate_coverage(pkg; genhtml=true, show_summary=true, genxml=false)
                 run(`genhtml -t $(title) -o $(COVDIR) $(tracefile)`)
             catch e
                 error("Failed to run genhtml. Check that lcov is installed (see the README).",
-                      "\nError message: ", sprint(Base.showerror, e))
+                    "\nError message: ", sprint(Base.showerror, e))
             end
             @info("generated coverage HTML")
         end
@@ -182,6 +182,11 @@ function generate_coverage(pkg; genhtml=true, show_summary=true, genxml=false)
     genxml && generate_xml(pkg)
     show_summary && coverage_summary(coverage)
     coverage
+end
+
+function test_generate_coverage(pkg; genhtml=true, show_summary=true, genxml=false)
+    Pkg.test(pkg; coverage=true)
+    generate_coverage(pkg; genhtml, show_summary, genxml)
 end
 
 """
@@ -193,10 +198,10 @@ If `rm_directory`, will delete the coverage directory, otherwise only deletes
 `*.cov` coverage output.
 """
 function clean_coverage(pkg;
-                        coverage_directory::AbstractString=COVDIR,
-                        rm_directory::Bool=true)
+    coverage_directory::AbstractString=COVDIR,
+    rm_directory::Bool=true)
     CoverageTools.clean_folder(pkgdir(pkg))
-    rm_directory && rm(joinpath(pkgdir(pkg), coverage_directory); force = true, recursive = true)
+    rm_directory && rm(joinpath(pkgdir(pkg), coverage_directory); force=true, recursive=true)
 end
 
 end # module
