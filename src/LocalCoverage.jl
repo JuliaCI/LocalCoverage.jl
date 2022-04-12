@@ -130,9 +130,9 @@ Generate a coverage Cobertura XML in the package `coverage` directory.
 This requires the Python package `lcov_cobertura` (>= v2.0.1), available in PyPl via
 `pip install lcov_cobertura`.
 """
-function generate_xml(pkg, filename="cov.xml")
-    run(Cmd(Cmd(["lcov_cobertura", "lcov.info", "-o", filename, "-b $(pkgdir(pkg))"]),
-        dir=joinpath(pkgdir(pkg), COVDIR)))
+function generate_xml(pkg, filename=joinpath(COVDIR, "cov.xml"))
+    run(Cmd(Cmd(["lcov_cobertura", joinpath(COVDIR, "lcov.info"), "-o", filename, "-b", pkgdir(pkg)]),
+        dir=pkgdir(pkg)))
     @info("generated cobertura XML $filename")
 end
 
