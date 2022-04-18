@@ -23,9 +23,9 @@ $(SIGNATURES)
 Get the root directory of a package.
 """
 function pkgdir(pkgstr::AbstractString)
-    joinpath(dirname(Base.locate_package(Base.PkgId(pkgstr))), "..")
+    normpath(dirname(Base.locate_package(Base.PkgId(pkgstr))), "..")
 end
-pkgdir(m::Module) = joinpath(dirname(pathof(m)), "..")
+pkgdir(m::Module) = normpath(dirname(pathof(m)), "..")
 
 """
 $(SIGNATURES)
