@@ -106,7 +106,7 @@ function coverage_summary(coverage)
 
     formatter(value, i, j) =
         if j == 3
-            isnan(value) ? "-" : @sprintf("%3.0f%%", value)
+            isnan(value) ? "-" : @sprintf("%3.2f%%", value)
         elseif j == 2
             hit, tracked = value
             @sprintf("%3d / %3d", hit, tracked)
