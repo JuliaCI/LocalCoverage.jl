@@ -23,9 +23,9 @@ $(SIGNATURES)
 Get the root directory of a package.
 """
 function pkgdir(pkgstr::AbstractString)
-    normpath(joinpath(dirname(Base.locate_package(Base.PkgId(pkgstr))), ".."))
+    normpath(dirname(Base.locate_package(Base.PkgId(pkgstr))), "..")
 end
-pkgdir(m::Module) = normpath(joinpath(dirname(pathof(m)), ".."))
+pkgdir(m::Module) = normpath(dirname(pathof(m)), "..")
 
 """
 $(SIGNATURES)
@@ -106,7 +106,7 @@ function coverage_summary(coverage)
 
     formatter(value, i, j) =
         if j == 3
-            isnan(value) ? "-" : @sprintf("%3.0f%%", value)
+            isnan(value) ? "-" : @sprintf("%3.2f%%", value)
         elseif j == 2
             hit, tracked = value
             @sprintf("%3d / %3d", hit, tracked)
