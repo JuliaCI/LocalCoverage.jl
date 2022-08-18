@@ -17,6 +17,24 @@ const LCOVINFO = "lcov.info"
 const PYTHON = get!(ENV, "PYTHON", isnothing(Sys.which("python3")) ? "python" : "python3")
 
 
+struct FileCoverageSummary
+    filename::String
+    lines_hit::Int
+    lines_tracked::Int
+    coverage::Float64
+    coverage_gaps::Vector{UnitRange{Int}}
+end
+
+struct PackageCoverage
+    package_dir::String
+    files::Vector{FileCoverageSummary}
+    lines_hit::Int
+    lines_tracked::Int
+    coverage::Float64
+    target_coverage::Float64
+end
+
+
 """
 $(SIGNATURES)
 
