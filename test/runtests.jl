@@ -1,6 +1,10 @@
 using LocalCoverage, Test
 
-lockfile = "/tmp/testingLocalCoverage" # prevent infinite recursion when testing
+table_header = r"File name\s+.\s+Lines hit\s+.\s+Coverage\s+.\s+Missing"
+table_line = r"src\/LocalCoverage.jl\s+.\s+\d+\s*\/\s*\d+\s+.\s+\d+%\s+.\s+"
+table_footer = r"TOTAL\s+.\s+\d+\s*\/\s*\d+\s+.\s+\d+%\s+.\s+."
+
+lockfile = joinpath(tempdir(), "testingLocalCoverage") # prevent infinite recursion when testing
 
 covdir = normpath(joinpath(@__DIR__, "..", "coverage"))
 
@@ -9,12 +13,21 @@ if !isfile(lockfile)
     tracefile = joinpath(covdir, "lcov.info")
     @test !isfile(tracefile)
     touch(lockfile)
-    cov = generate_coverage("LocalCoverage"; genhtml=true, show_summary=false)
-    tab = LocalCoverage.coverage_summary_table(cov)
-    @test tab[1,1] == "src/LocalCoverage.jl"
-    LocalCoverage.coverage_summary(cov)
+
+    cov = generate_coverage("LocalCoverage")
+    buffer = IOBuffer()
+    show(buffer, cov)
+    table = String(take!(buffer))
+    @test !isnothing(match(table_header, table))
+    @test !isnothing(match(table_line, table))
+    @test !isnothing(match(table_footer, table))
+
+    mktempdir() do dir
+        html_coverage("LocalCoverage", dir = dir)
+        @test isfile(joinpath(dir, "index.html"))
+    end
+
     rm(lockfile)
     @test isfile(tracefile)
-    clean_coverage("LocalCoverage", rm_directory=true)
-    @test !isdir(covdir)
+    rm(covdir, recursive = true)
 end
