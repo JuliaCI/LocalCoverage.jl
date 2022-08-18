@@ -67,6 +67,35 @@ function find_gaps(coverage)
     gaps
 end
 
+
+"""
+$(SIGNATURES)
+
+Evaluate the coverage metrics for the given pkg.
+"""
+function eval_coverage_metrics(coverage, package_dir, target_coverage)
+    coverage_list = map(coverage) do file
+        tracked = count(!isnothing, file.coverage)
+        gaps = find_gaps(file.coverage)
+        hit = tracked - sum(length.(gaps))
+
+        FileCoverageSummary(file.filename, hit, tracked, 100 * hit / tracked, gaps)
+    end
+
+    total_hit = sum(getfield.(coverage_list, :lines_hit))
+    total_tracked = sum(getfield.(coverage_list, :lines_tracked))
+
+    PackageCoverage(
+        package_dir,
+        coverage_list,
+        total_hit,
+        total_tracked,
+        100 * total_hit / total_tracked,
+        target_coverage,
+    )
+end
+
+
 """
 $(SIGNATURES)
 
