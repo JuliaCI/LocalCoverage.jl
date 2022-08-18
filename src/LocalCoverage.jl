@@ -30,6 +30,28 @@ pkgdir(m::Module) = joinpath(dirname(pathof(m)), "..")
 """
 $(SIGNATURES)
 
+Evaluate the ranges of lines without coverage.
+"""
+function find_gaps(coverage)
+    i = 1
+    last_line = length(coverage)
+    gaps = UnitRange{Int}[]
+    while i < last_line
+        gap_start = i = findnext(x -> !isnothing(x) && iszero(x), coverage, i)
+        isnothing(gap_start) && break
+        gap_end =
+            i = something(
+                findnext(x -> isnothing(x) || !iszero(x), coverage, i),
+                last_line + 1,
+            )
+        push!(gaps, gap_start:(gap_end-1))
+    end
+    gaps
+end
+
+"""
+$(SIGNATURES)
+
 Open the HTML coverage results in a browser for `pkg` if they exist.
 
 See [`generate_coverage`](@ref).
