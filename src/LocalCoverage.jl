@@ -96,6 +96,44 @@ function eval_coverage_metrics(coverage, package_dir, target_coverage)
 end
 
 
+format_gap(gap) = length(gap) == 1 ? "$(first(gap))" : "$(first(gap)) - $(last(gap))"
+format_line(summary) = hcat(
+    summary isa PackageCoverage ? "TOTAL" : summary.filename,
+    @sprintf("%3d / %3d", summary.lines_hit, summary.lines_tracked),
+    isnan(summary.coverage) ? "-" : @sprintf("%3.0f%%", summary.coverage),
+    summary isa PackageCoverage ? "" : join(map(format_gap, summary.coverage_gaps), ", "),
+)
+
+
+function Base.show(io::IO, coverage::PackageCoverage)
+    table = reduce(vcat, map(format_line, [coverage.files..., coverage]))
+    row_coverage = [getfield.(coverage.files, :coverage)... coverage.coverage]
+
+    highlighters = (
+        Highlighter(
+            (data, i, j) -> j == 3 && row_coverage[i] <= coverage.target_coverage,
+            bold = true,
+            foreground = :red,
+        ),
+        Highlighter((data, i, j) -> j == 3 && row_coverage[i] < 100, foreground = :yellow),
+        Highlighter((data, i, j) -> j == 3 && row_coverage[i] == 100, foreground = :green),
+    )
+
+    pretty_table(
+        io,
+        table,
+        ["File name", "Lines hit", "Coverage", "Missing"],
+        alignment = [:l, :r, :r, :r],
+        crop = :none,
+        linebreaks = true,
+        columns_width = [min(30, maximum(length.(table[:, 1]))), 11, 8, 35],
+        autowrap = true,
+        highlighters = highlighters,
+        body_hlines = [size(table, 1) - 1],
+    )
+end
+
+
 """
 $(SIGNATURES)
 
