@@ -32,10 +32,10 @@ To generate test coverage data do
 ```julia
 using LocalCoverage
 # pkg is the package name as a string, e.g. "LocalCoverage"
-generate_coverage(pkg = nothing; target_coverage = 80, run_test = true) # defaults shown
+generate_coverage(pkg = nothing; run_test = true) # defaults shown
 ```
 You can then navigate to the `coverage` subdirectory of the package directory (e.g.
-`~/.julia/dev/PackageName/coverage`) and see the generated coverage summaries. Note that a target coverage may be supplied to control the pretty printing of the coverage data and that the test execution step may be skipped if `*.cov` files were already generated (possibly by some external package).  
+`~/.julia/dev/PackageName/coverage`) and see the generated coverage summaries. Note that the test execution step may be skipped if `*.cov` files were already generated (possibly by some external package).  
 
 To generate, and optionally open, the coverage report HTML do
 ```julia

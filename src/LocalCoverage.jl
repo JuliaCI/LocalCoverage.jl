@@ -30,7 +30,6 @@ struct PackageCoverage
     lines_hit::Int
     lines_tracked::Int
     coverage::Float64
-    target_coverage::Float64
 end
 
 """
@@ -70,7 +69,7 @@ $(SIGNATURES)
 
 Evaluate the coverage metrics for the given pkg.
 """
-function eval_coverage_metrics(coverage, package_dir, target_coverage)
+function eval_coverage_metrics(coverage, package_dir)
     coverage_list = map(coverage) do file
         tracked = count(!isnothing, file.coverage)
         gaps = find_gaps(file.coverage)
@@ -88,7 +87,6 @@ function eval_coverage_metrics(coverage, package_dir, target_coverage)
         total_hit,
         total_tracked,
         100 * total_hit / total_tracked,
-        target_coverage,
     )
 end
 
@@ -110,7 +108,7 @@ An lcov file is also produced in `Pkg.dir(pkg, \"$(COVDIR)\", \"$(LCOVINFO)\")`.
 
 See [`report`](@ref).
 """
-function generate_coverage(pkg = nothing; target_coverage = 80, run_test = true)
+function generate_coverage(pkg = nothing; run_test = true)
     if run_test
         isnothing(pkg) ? Pkg.test(; coverage = true) : Pkg.test(pkg; coverage = true)
     end
@@ -121,7 +119,7 @@ function generate_coverage(pkg = nothing; target_coverage = 80, run_test = true)
         tracefile = "$COVDIR/lcov.info"
         CoverageTools.LCOV.writefile(tracefile, coverage)
         CoverageTools.clean_folder("./src")
-        eval_coverage_metrics(coverage, package_dir, target_coverage)
+        eval_coverage_metrics(coverage, package_dir)
     end
 end
 
@@ -141,12 +139,12 @@ function Base.show(io::IO, coverage::PackageCoverage)
 
     highlighters = (
         Highlighter(
-            (data, i, j) -> j == 3 && row_coverage[i] <= coverage.target_coverage,
+            (data, i, j) -> j == 3 && row_coverage[i] <= 50,
             bold = true,
             foreground = :red,
         ),
-        Highlighter((data, i, j) -> j == 3 && row_coverage[i] < 100, foreground = :yellow),
-        Highlighter((data, i, j) -> j == 3 && row_coverage[i] == 100, foreground = :green),
+        Highlighter((data, i, j) -> j == 3 && row_coverage[i] <= 70, foreground = :yellow),
+        Highlighter((data, i, j) -> j == 3 && row_coverage[i] >= 90, foreground = :green),
     )
 
     pretty_table(
@@ -212,12 +210,18 @@ julia --project -e'using LocalCoverage; report(target_coverage=90)'
 
 See [`generate_coverage`](@ref).
 """
-report(coverage::PackageCoverage) =
-    exit(coverage.coverage >= coverage.target_coverage ? 0 : 1)
+function report(coverage::PackageCoverage, target_coverage = 80)
+    was_target_met = coverage.coverage >= target_coverage
+    print(" Target coverage ", was_target_met ? "was met" : "wasn't met", " (")
+    printstyled("$target_coverage%", color = was_target_met ? :green : :red, bold = true)
+    println(")")
+    exit(was_target_met ? 0 : 1)
+end
+
 function report(pkg = nothing; target_coverage = 80)
-    coverage = generate_coverage(pkg, target_coverage = target_coverage)
+    coverage = generate_coverage(pkg)
     show(coverage)
-    report(coverage)
+    report(coverage, target_coverage)
 end
 
 end # module
