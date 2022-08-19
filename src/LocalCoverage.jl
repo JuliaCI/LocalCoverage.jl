@@ -118,7 +118,7 @@ function generate_coverage(pkg = nothing; run_test = true)
         mkpath(COVDIR)
         tracefile = "$COVDIR/lcov.info"
         CoverageTools.LCOV.writefile(tracefile, coverage)
-        CoverageTools.clean_folder("./src")
+        CoverageTools.clean_folder("./")
         eval_coverage_metrics(coverage, package_dir)
     end
 end
