@@ -150,7 +150,7 @@ function Base.show(io::IO, coverage::PackageCoverage)
     pretty_table(
         io,
         table,
-        ["File name", "Lines hit", "Coverage", "Missing"],
+        header = ["File name", "Lines hit", "Coverage", "Missing"],
         alignment = [:l, :r, :r, :r],
         crop = :none,
         linebreaks = true,
