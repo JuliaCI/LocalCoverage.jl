@@ -7,7 +7,7 @@ using PrettyTables
 using DefaultApplication
 import Pkg
 
-export generate_coverage, report, html_coverage
+export generate_coverage, report_coverage, html_coverage
 
 "Directory for coverage results."
 const COVDIR = "coverage"
@@ -106,7 +106,7 @@ easier use in combination with other test packages.
 
 An lcov file is also produced in `Pkg.dir(pkg, \"$(COVDIR)\", \"$(LCOVINFO)\")`.
 
-See [`report`](@ref).
+See [`report_coverage`](@ref).
 """
 function generate_coverage(pkg = nothing; run_test = true)
     if run_test
@@ -205,12 +205,12 @@ the target coverage was met or with a status code 1 otherwise. Useful in command
 line, e.g.
 
 ```bash
-julia --project -e'using LocalCoverage; report(target_coverage=90)'
+julia --project -e'using LocalCoverage; report_coverage(target_coverage=90)'
 ```
 
 See [`generate_coverage`](@ref).
 """
-function report(coverage::PackageCoverage, target_coverage = 80)
+function report_coverage(coverage::PackageCoverage, target_coverage = 80)
     was_target_met = coverage.coverage >= target_coverage
     print(" Target coverage ", was_target_met ? "was met" : "wasn't met", " (")
     printstyled("$target_coverage%", color = was_target_met ? :green : :red, bold = true)
@@ -218,10 +218,10 @@ function report(coverage::PackageCoverage, target_coverage = 80)
     exit(was_target_met ? 0 : 1)
 end
 
-function report(pkg = nothing; target_coverage = 80)
+function report_coverage(pkg = nothing; target_coverage = 80)
     coverage = generate_coverage(pkg)
     show(coverage)
-    report(coverage, target_coverage)
+    report_coverage(coverage, target_coverage)
 end
 
 end # module
