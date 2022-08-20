@@ -15,20 +15,44 @@ const COVDIR = "coverage"
 "Coverage tracefile."
 const LCOVINFO = "lcov.info"
 
+"""
+Summarized coverage data about a single file. Evaluated for all files of a package
+to compose a `PackageCoverage`.
 
+$(FIELDS)
+"""
 struct FileCoverageSummary
+    "File path relative to the directory of the project"
     filename::String
+    "Number of lines covered by tests"
     lines_hit::Int
+    "Number of lines with content to be tested"
     lines_tracked::Int
+    "Percentage of lines covered"
     coverage::Float64
+    "List of all line ranges without coverage"
     coverage_gaps::Vector{UnitRange{Int}}
 end
 
+"""
+Summarized coverage data about a specific package. Contains a list of
+`FileCoverageSummary` relative to the package files as well as global metrics
+about the package coverage.
+
+See [`report_coverage`](@ref).
+
+$(FIELDS)
+"""
 struct PackageCoverage
+    "Absolute path of the package"
     package_dir::String
+    "List of files coverage summaries tracked"
     files::Vector{FileCoverageSummary}
+    "Total number of lines covered by tests in the package"
     lines_hit::Int
+    "Total number of lines with content to be tested in the package"
     lines_tracked::Int
+    "Percentage of package lines covered"
     coverage::Float64
 end
 
