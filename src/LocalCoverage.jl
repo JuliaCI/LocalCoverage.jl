@@ -21,7 +21,7 @@ to compose a `PackageCoverage`.
 
 $(FIELDS)
 """
-struct FileCoverageSummary
+Base.@kwdef struct FileCoverageSummary
     "File path relative to the directory of the project"
     filename::String
     "Number of lines covered by tests"
@@ -43,7 +43,7 @@ See [`report_coverage`](@ref).
 
 $(FIELDS)
 """
-struct PackageCoverage
+Base.@kwdef struct PackageCoverage
     "Absolute path of the package"
     package_dir::String
     "List of files coverage summaries tracked"
