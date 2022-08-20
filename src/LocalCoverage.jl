@@ -37,8 +37,7 @@ $(SIGNATURES)
 
 Get the root directory of a package.
 """
-pkgdir(pkgstr::AbstractString) =
-    joinpath(dirname(Base.locate_package(Base.PkgId(pkgstr))), "..")
+pkgdir(pkgstr::AbstractString) = abspath(joinpath(dirname(Base.find_package(pkgstr)), ".."))
 
 """
 $(SIGNATURES)
