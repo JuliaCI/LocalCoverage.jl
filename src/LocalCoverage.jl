@@ -5,6 +5,7 @@ using DocStringExtensions
 using Printf
 using PrettyTables
 using DefaultApplication
+using LibGit2
 import Pkg
 
 export generate_coverage, report_coverage, html_coverage
@@ -195,7 +196,7 @@ See [`generate_coverage`](@ref).
 function html_coverage(coverage::PackageCoverage; open = false, dir = tempdir())
     cd(coverage.package_dir) do
         branch = try
-            strip(read(`git rev-parse --abbrev-ref HEAD`, String))
+            LibGit2.headname(GitRepo("./"))
         catch
             @warn "git branch could not be detected"
         end
