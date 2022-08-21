@@ -30,4 +30,7 @@ if !isfile(lockfile)
     rm(lockfile)
     @test isfile(tracefile)
     rm(covdir, recursive = true)
+
+    @test LocalCoverage.find_gaps([nothing, 0, 0, 0, 2, 3, 0, nothing, 0, 3, 0, 6, 2]) ==
+          [2:4, 7:7, 9:9, 11:11]
 end
