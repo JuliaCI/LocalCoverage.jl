@@ -67,6 +67,8 @@ pkgdir(pkgstr::AbstractString) = abspath(joinpath(dirname(Base.find_package(pkgs
 $(SIGNATURES)
 
 Evaluate the ranges of lines without coverage.
+
+`coverage` is the vector of coverage counts for each line.
 """
 function find_gaps(coverage)
     i, last_line = firstindex(coverage), lastindex(coverage)
