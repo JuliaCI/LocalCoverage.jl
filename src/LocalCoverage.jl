@@ -14,7 +14,9 @@ const COVDIR = "coverage"
 "Coverage tracefile."
 const LCOVINFO = "lcov.info"
 
-const PYTHON = get!(ENV, "PYTHON", isnothing(Sys.which("python3")) ? "python" : "python3")
+const PYTHON = get!(ENV, "PYTHON") do
+    isnothing(Sys.which("python3")) ? "python" : "python3"
+end
 
 
 """
