@@ -217,19 +217,11 @@ function html_coverage(coverage::PackageCoverage; open = false, dir = tempdir())
         @info("generated coverage HTML")
         open && DefaultApplication.open(joinpath(dir, "index.html"))
     end
-    try
-        if Sys.isapple()
-            run(`open $htmlfile`)
-        elseif Sys.islinux() || Sys.isbsd()
-            run(`xdg-open $htmlfile`)
-        elseif Sys.iswindows()
-            run(`start $htmlfile`)
-        end
-    catch e
-        error("Failed to open the generated $(htmlfile)\n",
-              "Error: ", sprint(Base.showerror, e))
-    end
     nothing
+end
+
+function html_coverage(pkg = nothing; open = false, dir = tempdir())
+    html_coverage(generate_coverage(pkg), open = open, dir = dir)
 end
 
 """
