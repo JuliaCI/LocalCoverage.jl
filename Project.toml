@@ -1,7 +1,7 @@
 name = "LocalCoverage"
 uuid = "5f6e1e16-694c-5876-87ef-16b5274f298e"
 authors = ["Tamas K. Papp <tkpapp@gmail.com>"]
-version = "0.3.0"
+version = "0.4.0"
 
 [deps]
 CoverageTools = "c36e975a-824b-4404-a568-ef97ca766997"
