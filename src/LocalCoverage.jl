@@ -8,17 +8,13 @@ using DefaultApplication
 using LibGit2
 import Pkg
 
-export generate_coverage, report_coverage, html_coverage
+export generate_coverage, report_coverage, html_coverage, generate_xml
 
 "Directory for coverage results."
 const COVDIR = "coverage"
 
 "Coverage tracefile."
 const LCOVINFO = "lcov.info"
-
-const PYTHON = get!(ENV, "PYTHON") do
-    isnothing(Sys.which("python3")) ? "python" : "python3"
-end
 
 """
 Summarized coverage data about a single file. Evaluated for all files of a package
@@ -60,6 +56,7 @@ Base.@kwdef struct PackageCoverage
     "Percentage of package lines covered"
     coverage::Float64
 end
+
 
 """
 $(SIGNATURES)
@@ -151,7 +148,6 @@ function generate_coverage(pkg = nothing; run_test = true)
     end
 end
 
-
 format_gap(gap) = length(gap) == 1 ? "$(first(gap))" : "$(first(gap)) - $(last(gap))"
 function format_line(summary)
     hcat(
@@ -162,7 +158,6 @@ function format_line(summary)
         join(map(format_gap, summary.coverage_gaps), ", "),
     )
 end
-
 
 function Base.show(io::IO, coverage::PackageCoverage)
     table = reduce(vcat, map(format_line, [coverage.files..., coverage]))
@@ -195,8 +190,7 @@ end
 """
 $(SIGNATURES)
 
-Generate, and optionally open, the HTML coverage summary in a browser for `pkg`
-inside `dir`.
+Open the HTML coverage results in a browser for `pkg` if they exist.
 
 See [`generate_coverage`](@ref).
 """
@@ -223,10 +217,20 @@ function html_coverage(coverage::PackageCoverage; open = false, dir = tempdir())
         @info("generated coverage HTML")
         open && DefaultApplication.open(joinpath(dir, "index.html"))
     end
+    try
+        if Sys.isapple()
+            run(`open $htmlfile`)
+        elseif Sys.islinux() || Sys.isbsd()
+            run(`xdg-open $htmlfile`)
+        elseif Sys.iswindows()
+            run(`start $htmlfile`)
+        end
+    catch e
+        error("Failed to open the generated $(htmlfile)\n",
+              "Error: ", sprint(Base.showerror, e))
+    end
+    nothing
 end
-html_coverage(pkg = nothing; open = false, dir = tempdir()) =
-    html_coverage(generate_coverage(pkg), open = open, dir = dir)
-
 
 """
 $(SIGNATURES)
@@ -253,6 +257,19 @@ function report_coverage(pkg = nothing; target_coverage = 80)
     coverage = generate_coverage(pkg)
     show(coverage)
     report_coverage(coverage, target_coverage)
+
+"""
+$(SIGNATURES)
+
+Generate a coverage Cobertura XML in the package `coverage` directory.
+
+This requires the Python package `lcov_cobertura` (>= v2.0.1), available in PyPl via
+`pip install lcov_cobertura`.
+"""
+function generate_xml(coverage::PackageCoverage, filename="cov.xml")
+    run(Cmd(Cmd(["lcov_cobertura", "lcov.info", "-o", filename]),
+            dir = joinpath(coverage.package_dir, COVDIR)))
+    @info("generated cobertura XML $filename")
 end
 
 end # module
