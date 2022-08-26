@@ -16,6 +16,10 @@ const COVDIR = "coverage"
 "Coverage tracefile."
 const LCOVINFO = "lcov.info"
 
+const PYTHON = get!(ENV, "PYTHON") do
+    isnothing(Sys.which("python3")) ? "python" : "python3"
+end
+
 """
 Summarized coverage data about a single file. Evaluated for all files of a package
 to compose a `PackageCoverage`.
