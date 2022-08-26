@@ -4,9 +4,11 @@ using CoverageTools
 using DocStringExtensions
 using Printf
 using PrettyTables
+using DefaultApplication
+using LibGit2
 import Pkg
 
-export generate_coverage, open_coverage, clean_coverage, coverage_summary
+export generate_coverage, report_coverage, html_coverage
 
 "Directory for coverage results."
 const COVDIR = "coverage"
@@ -18,187 +20,239 @@ const PYTHON = get!(ENV, "PYTHON") do
     isnothing(Sys.which("python3")) ? "python" : "python3"
 end
 
+"""
+Summarized coverage data about a single file. Evaluated for all files of a package
+to compose a `PackageCoverage`.
+
+$(FIELDS)
+"""
+Base.@kwdef struct FileCoverageSummary
+    "File path relative to the directory of the project"
+    filename::String
+    "Number of lines covered by tests"
+    lines_hit::Int
+    "Number of lines with content to be tested"
+    lines_tracked::Int
+    "Percentage of lines covered"
+    coverage::Float64
+    "List of all line ranges without coverage"
+    coverage_gaps::Vector{UnitRange{Int}}
+end
+
+"""
+Summarized coverage data about a specific package. Contains a list of
+`FileCoverageSummary` relative to the package files as well as global metrics
+about the package coverage.
+
+See [`report_coverage`](@ref).
+
+$(FIELDS)
+"""
+Base.@kwdef struct PackageCoverage
+    "Absolute path of the package"
+    package_dir::String
+    "List of files coverage summaries tracked"
+    files::Vector{FileCoverageSummary}
+    "Total number of lines covered by tests in the package"
+    lines_hit::Int
+    "Total number of lines with content to be tested in the package"
+    lines_tracked::Int
+    "Percentage of package lines covered"
+    coverage::Float64
+end
 
 """
 $(SIGNATURES)
 
 Get the root directory of a package.
 """
-function pkgdir(pkgstr::AbstractString)
-    joinpath(dirname(Base.locate_package(Base.PkgId(pkgstr))), "..")
-end
-pkgdir(m::Module) = joinpath(dirname(pathof(m)), "..")
+pkgdir(pkgstr::AbstractString) = abspath(joinpath(dirname(Base.find_package(pkgstr)), ".."))
 
 """
 $(SIGNATURES)
 
-Open the HTML coverage results in a browser for `pkg` if they exist.
+Evaluate the ranges of lines without coverage.
+
+`coverage` is the vector of coverage counts for each line.
+"""
+function find_gaps(coverage)
+    i, last_line = firstindex(coverage), lastindex(coverage)
+    gaps = UnitRange{Int}[]
+    while i < last_line
+        gap_start = i = findnext(x -> !isnothing(x) && iszero(x), coverage, i)
+        isnothing(gap_start) && break
+        gap_end =
+            i = something(
+                findnext(x -> isnothing(x) || !iszero(x), coverage, i),
+                last_line + 1,
+            )
+        push!(gaps, gap_start:(gap_end-1))
+    end
+    gaps
+end
+
+
+"""
+$(SIGNATURES)
+
+Evaluate the coverage metrics for the given pkg.
+"""
+function eval_coverage_metrics(coverage, package_dir)
+    coverage_list = map(coverage) do file
+        tracked = count(!isnothing, file.coverage)
+        gaps = find_gaps(file.coverage)
+        hit = tracked - sum(length.(gaps))
+
+        FileCoverageSummary(file.filename, hit, tracked, 100 * hit / tracked, gaps)
+    end
+
+    total_hit = sum(getfield.(coverage_list, :lines_hit))
+    total_tracked = sum(getfield.(coverage_list, :lines_tracked))
+
+    PackageCoverage(
+        package_dir,
+        coverage_list,
+        total_hit,
+        total_tracked,
+        100 * total_hit / total_tracked,
+    )
+end
+
+
+"""
+$(SIGNATURES)
+
+Generate a PackageCoverage that summarizes coverage results for package `pkg`.
+
+If no pkg is supplied, the method operates in the currently active pkg.
+
+A percentage target_coverage may be specified to control the color coding of the
+pretty printed results.
+
+The test execution step may be skipped by passing run_test=false, allowing an
+easier use in combination with other test packages.
+
+An lcov file is also produced in `Pkg.dir(pkg, \"$(COVDIR)\", \"$(LCOVINFO)\")`.
+
+See [`report_coverage`](@ref).
+"""
+function generate_coverage(pkg = nothing; run_test = true)
+    if run_test
+        isnothing(pkg) ? Pkg.test(; coverage = true) : Pkg.test(pkg; coverage = true)
+    end
+    package_dir = isnothing(pkg) ? dirname(Base.active_project()) : pkgdir(pkg)
+    cd(package_dir) do
+        coverage = CoverageTools.process_folder()
+        mkpath(COVDIR)
+        tracefile = "$COVDIR/lcov.info"
+        CoverageTools.LCOV.writefile(tracefile, coverage)
+        CoverageTools.clean_folder("./")
+        eval_coverage_metrics(coverage, package_dir)
+    end
+end
+
+
+format_gap(gap) = length(gap) == 1 ? "$(first(gap))" : "$(first(gap)) - $(last(gap))"
+function format_line(summary)
+    hcat(
+        summary isa PackageCoverage ? "TOTAL" : summary.filename,
+        @sprintf("%3d / %3d", summary.lines_hit, summary.lines_tracked),
+        isnan(summary.coverage) ? "-" : @sprintf("%3.0f%%", summary.coverage),
+        summary isa PackageCoverage ? "" :
+        join(map(format_gap, summary.coverage_gaps), ", "),
+    )
+end
+
+
+function Base.show(io::IO, coverage::PackageCoverage)
+    table = reduce(vcat, map(format_line, [coverage.files..., coverage]))
+    row_coverage = [getfield.(coverage.files, :coverage)... coverage.coverage]
+
+    highlighters = (
+        Highlighter(
+            (data, i, j) -> j == 3 && row_coverage[i] <= 50,
+            bold = true,
+            foreground = :red,
+        ),
+        Highlighter((data, i, j) -> j == 3 && row_coverage[i] <= 70, foreground = :yellow),
+        Highlighter((data, i, j) -> j == 3 && row_coverage[i] >= 90, foreground = :green),
+    )
+
+    pretty_table(
+        io,
+        table,
+        header = ["File name", "Lines hit", "Coverage", "Missing"],
+        alignment = [:l, :r, :r, :r],
+        crop = :none,
+        linebreaks = true,
+        columns_width = [min(30, maximum(length.(table[:, 1]))), 11, 8, 35],
+        autowrap = true,
+        highlighters = highlighters,
+        body_hlines = [size(table, 1) - 1],
+    )
+end
+
+"""
+$(SIGNATURES)
+
+Generate, and optionally open, the HTML coverage summary in a browser for `pkg`
+inside `dir`.
 
 See [`generate_coverage`](@ref).
 """
-function open_coverage(pkg;
-                       coverage_file::AbstractString=joinpath(COVDIR, "index.html"))
-    htmlfile = joinpath(pkgdir(pkg), coverage_file)
-    if !isfile(htmlfile)
-        @warn("Not found, run generate_coverage(pkg) first.")
-        return nothing
-    end
-    try
-        if Sys.isapple()
-            run(`open $htmlfile`)
-        elseif Sys.islinux() || Sys.isbsd()
-            run(`xdg-open $htmlfile`)
-        elseif Sys.iswindows()
-            run(`start $htmlfile`)
+function html_coverage(coverage::PackageCoverage; open = false, dir = tempdir())
+    cd(coverage.package_dir) do
+        branch = try
+            LibGit2.headname(GitRepo("./"))
+        catch
+            @warn "git branch could not be detected"
         end
-    catch e
-        error("Failed to open the generated $(htmlfile)\n",
-              "Error: ", sprint(Base.showerror, e))
-    end
-    nothing
-end
 
-"""
-$(SIGNATURES)
-
-Returns a table giving coverage details by file in human readable form:
-- column 1: source file name
-- column 2: tuple (lines_hit, lines_tracked)
-- column 3: coverage fraction
-"""
-function coverage_summary_table(coverage)
-    n = length(coverage)
-    tab = Array{Any, 2}(undef, 1+n, 3)
-    total_hit = 0
-    total_tracked    = 0
-
-    for (i, f) in enumerate(coverage)
-        hit     = count(x->!isnothing(x) && x>0, f.coverage)
-        tracked = count(x->!isnothing(x),        f.coverage)
-
-        total_hit     += hit
-        total_tracked += tracked
-
-        tab[i,:] .= (f.filename, (hit, tracked),
-                     100 * hit / tracked)
-    end
-
-    tab[n+1, :] .= ("TOTAL", (total_hit, total_tracked),
-                    100 * total_hit / total_tracked)
-    tab
-end
-
-"""
-$(SIGNATURES)
-
-Pretty-prints a table giving coverage details by file.
-"""
-function coverage_summary(coverage)
-    tab = coverage_summary_table(coverage)
-
-    highlighters = (
-        Highlighter((data,i,j)->j==3 && data[i,j] <= 50,
-                    bold       = true,
-                    foreground = :red),
-        Highlighter((data,i,j)->j==3 && data[i,j] <= 70,
-                    foreground = :yellow),
-        Highlighter((data,i,j)->j==3 && data[i,j] >= 90,
-                    foreground = :green),
-    )
-
-    formatter(value, i, j) = if j==3
-        isnan(value) ? "-" : @sprintf("%3.0f%%", value)
-    elseif j==2
-        hit, tracked = value
-        @sprintf("%3d / %3d", hit, tracked)
-    else
-        value
-    end
-
-    pretty_table(tab,
-                 ["File name", "Lines hit", "Coverage"],
-                 alignment = [:l, :r, :r],
-                 highlighters = highlighters,
-                 body_hlines = [size(tab, 1)-1],
-                 formatters = formatter)
-end
-
-"""
-    generate_xml(pkg, filename="cov.xml")
-
-Generate a coverage Cobertura XML in the package `coverage` directory.
-
-This requires the Python package `lcov_cobertura` (>= v2.0.1), available in PyPl via
-`pip install lcov_cobertura`.
-"""
-function generate_xml(pkg, filename="cov.xml")
-    run(Cmd(Cmd(["lcov_cobertura", "lcov.info", "-o", filename]),
-            dir=joinpath(pkgdir(pkg),COVDIR)))
-    @info("generated cobertura XML $filename")
-end
-
-"""
-$(SIGNATURES)
-
-Generate a coverage report for package `pkg`.
-
-When `genhtml`, the corresponding external command will be called to generate a
-HTML report. This can be found in eg the package `lcov` on Debian/Ubuntu.
-
-If `genxml` is true, will generate a Cobertura XML in the `coverage` directory
-(requires Python package `lcov_cobertura`, see `generate_xml`).
-
-If `show_summary` is true, a summary will be printed to `stdout`.
-
-`*.cov` files are near the source files as generated by Julia, everything else
-is placed in `Pkg.dir(pkg, \"$(COVDIR)\")`. The summary is in
-`Pkg.dir(pkg, \"$(COVDIR)\", \"$(LCOVINFO)\")`.
-
-Use [`clean_coverage`](@ref) for cleaning.
-"""
-function generate_coverage(pkg; genhtml=true, show_summary=true, genxml=false)
-    Pkg.test(pkg; coverage = true)
-    coverage = cd(pkgdir(pkg)) do
-        coverage = CoverageTools.process_folder()
-        isdir(COVDIR) || mkdir(COVDIR)
+        title = "on branch $(branch)"
         tracefile = "$(COVDIR)/lcov.info"
-        CoverageTools.LCOV.writefile(tracefile, coverage)
-        if genhtml
-            branch =
-                try
-                    strip(read(`git rev-parse --abbrev-ref HEAD`, String))
-                catch
-                    @warn "git branch could not be detected"
-                end
-            title = "on branch $(branch)"
-            try
-                run(`genhtml -t $(title) -o $(COVDIR) $(tracefile)`)
-            catch e
-                error("Failed to run genhtml. Check that lcov is installed (see the README).",
-                      "\nError message: ", sprint(Base.showerror, e))
-            end
-            @info("generated coverage HTML")
+
+        try
+            run(`genhtml -t $(title) -o $(dir) $(tracefile)`)
+        catch e
+            error(
+                "Failed to run genhtml. Check that lcov is installed (see the README).",
+                "\nError message: ",
+                sprint(Base.showerror, e),
+            )
         end
-        coverage
+        @info("generated coverage HTML")
+        open && DefaultApplication.open(joinpath(dir, "index.html"))
     end
-    genxml && generate_xml(pkg)
-    show_summary && coverage_summary(coverage)
-    coverage
 end
+html_coverage(pkg = nothing; open = false, dir = tempdir()) =
+    html_coverage(generate_coverage(pkg), open = open, dir = dir)
+
 
 """
 $(SIGNATURES)
 
-Clean up after [`generate_coverage`](@ref).
+Utility method that prints coverage statistics and exits with a status code 0 if
+the target coverage was met or with a status code 1 otherwise. Useful in command
+line, e.g.
 
-If `rm_directory`, will delete the coverage directory, otherwise only deletes
-`*.cov` coverage output.
+```bash
+julia --project -e'using LocalCoverage; report_coverage(target_coverage=90)'
+```
+
+See [`generate_coverage`](@ref).
 """
-function clean_coverage(pkg;
-                        coverage_directory::AbstractString=COVDIR,
-                        rm_directory::Bool=true)
-    CoverageTools.clean_folder(pkgdir(pkg))
-    rm_directory && rm(joinpath(pkgdir(pkg), coverage_directory); force = true, recursive = true)
+function report_coverage(coverage::PackageCoverage, target_coverage = 80)
+    was_target_met = coverage.coverage >= target_coverage
+    print(" Target coverage ", was_target_met ? "was met" : "wasn't met", " (")
+    printstyled("$target_coverage%", color = was_target_met ? :green : :red, bold = true)
+    println(")")
+    exit(was_target_met ? 0 : 1)
+end
+
+function report_coverage(pkg = nothing; target_coverage = 80)
+    coverage = generate_coverage(pkg)
+    show(coverage)
+    report_coverage(coverage, target_coverage)
 end
 
 end # module
