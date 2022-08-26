@@ -257,6 +257,7 @@ function report_coverage(pkg = nothing; target_coverage = 80)
     coverage = generate_coverage(pkg)
     show(coverage)
     report_coverage(coverage, target_coverage)
+end
 
 """
 $(SIGNATURES)
