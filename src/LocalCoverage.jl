@@ -190,7 +190,8 @@ end
 """
 $(SIGNATURES)
 
-Open the HTML coverage results in a browser for `pkg` if they exist.
+Generate, and optionally open, the HTML coverage summary in a browser for `pkg`
+inside `dir`.
 
 See [`generate_coverage`](@ref).
 """
