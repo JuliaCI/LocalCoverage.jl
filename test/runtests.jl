@@ -22,9 +22,11 @@ if !isfile(lockfile)
     @test !isnothing(match(table_line, table))
     @test !isnothing(match(table_footer, table))
 
-    mktempdir() do dir
-        html_coverage("LocalCoverage", dir = dir)
-        @test isfile(joinpath(dir, "index.html"))
+    if !isnothing(Sys.which("genhtml"))
+        mktempdir() do dir
+            html_coverage("LocalCoverage", dir = dir)
+            @test isfile(joinpath(dir, "index.html"))
+        end
     end
 
     rm(lockfile)
