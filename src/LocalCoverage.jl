@@ -8,7 +8,7 @@ using DefaultApplication
 using LibGit2
 import Pkg
 
-export generate_coverage, report_coverage, html_coverage, generate_xml
+export generate_coverage, clean_coverage, report_coverage, html_coverage, generate_xml
 
 "Directory for coverage results."
 const COVDIR = "coverage"
@@ -57,13 +57,14 @@ Base.@kwdef struct PackageCoverage
     coverage::Float64
 end
 
-
 """
 $(SIGNATURES)
 
-Get the root directory of a package.
+Get the root directory of a package. For `nothing`, fall back to the active project.
 """
 pkgdir(pkgstr::AbstractString) = abspath(joinpath(dirname(Base.find_package(pkgstr)), ".."))
+
+pkgdir(::Nothing) = dirname(Base.active_project())
 
 """
 $(SIGNATURES)
@@ -115,7 +116,6 @@ function eval_coverage_metrics(coverage, package_dir)
     )
 end
 
-
 """
 $(SIGNATURES)
 
@@ -131,20 +131,38 @@ easier use in combination with other test packages.
 
 An lcov file is also produced in `Pkg.dir(pkg, \"$(COVDIR)\", \"$(LCOVINFO)\")`.
 
-See [`report_coverage`](@ref).
+See [`report_coverage`](@ref), [`clean_coverage`](@ref).
 """
 function generate_coverage(pkg = nothing; run_test = true)
     if run_test
         isnothing(pkg) ? Pkg.test(; coverage = true) : Pkg.test(pkg; coverage = true)
     end
-    package_dir = isnothing(pkg) ? dirname(Base.active_project()) : pkgdir(pkg)
+    package_dir = pkgdir(pkg)
     cd(package_dir) do
         coverage = CoverageTools.process_folder()
         mkpath(COVDIR)
-        tracefile = "$COVDIR/lcov.info"
+        tracefile = joinpath(COVDIR, LCOVINFO)
         CoverageTools.LCOV.writefile(tracefile, coverage)
         CoverageTools.clean_folder("./")
         eval_coverage_metrics(coverage, package_dir)
+    end
+end
+
+"""
+$(SIGNATURES)
+
+Clean up after [`generate_coverage`](@ref).
+
+If `rm_directory`, will delete the coverage directory, otherwise only deletes the
+`$(LCOVINFO) file.
+"""
+function clean_coverage(pkg = nothing; rm_directory::Bool = true)
+    cd(pkgdir(pkg)) do
+        if rm_directory
+            rm(COVDIR; force = true, recursive = true)
+        else
+            rm(COVDIR, LCOVINFO)
+        end
     end
 end
 
@@ -204,7 +222,7 @@ function html_coverage(coverage::PackageCoverage; open = false, dir = tempdir())
         end
 
         title = "on branch $(branch)"
-        tracefile = "$(COVDIR)/lcov.info"
+        tracefile = joinpath(COVDIR, LCOVINFO)
 
         try
             run(`genhtml -t $(title) -o $(dir) $(tracefile)`)
