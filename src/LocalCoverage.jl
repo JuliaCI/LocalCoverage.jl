@@ -8,17 +8,13 @@ using DefaultApplication
 using LibGit2
 import Pkg
 
-export generate_coverage, report_coverage, html_coverage
+export generate_coverage, clean_coverage, report_coverage, html_coverage, generate_xml
 
 "Directory for coverage results."
 const COVDIR = "coverage"
 
 "Coverage tracefile."
 const LCOVINFO = "lcov.info"
-
-const PYTHON = get!(ENV, "PYTHON") do
-    isnothing(Sys.which("python3")) ? "python" : "python3"
-end
 
 """
 Summarized coverage data about a single file. Evaluated for all files of a package
@@ -64,9 +60,11 @@ end
 """
 $(SIGNATURES)
 
-Get the root directory of a package.
+Get the root directory of a package. For `nothing`, fall back to the active project.
 """
 pkgdir(pkgstr::AbstractString) = abspath(joinpath(dirname(Base.find_package(pkgstr)), ".."))
+
+pkgdir(::Nothing) = dirname(Base.active_project())
 
 """
 $(SIGNATURES)
@@ -118,7 +116,6 @@ function eval_coverage_metrics(coverage, package_dir)
     )
 end
 
-
 """
 $(SIGNATURES)
 
@@ -134,23 +131,40 @@ easier use in combination with other test packages.
 
 An lcov file is also produced in `Pkg.dir(pkg, \"$(COVDIR)\", \"$(LCOVINFO)\")`.
 
-See [`report_coverage`](@ref).
+See [`report_coverage`](@ref), [`clean_coverage`](@ref).
 """
 function generate_coverage(pkg = nothing; run_test = true)
     if run_test
         isnothing(pkg) ? Pkg.test(; coverage = true) : Pkg.test(pkg; coverage = true)
     end
-    package_dir = isnothing(pkg) ? dirname(Base.active_project()) : pkgdir(pkg)
+    package_dir = pkgdir(pkg)
     cd(package_dir) do
         coverage = CoverageTools.process_folder()
         mkpath(COVDIR)
-        tracefile = "$COVDIR/lcov.info"
+        tracefile = joinpath(COVDIR, LCOVINFO)
         CoverageTools.LCOV.writefile(tracefile, coverage)
         CoverageTools.clean_folder("./")
         eval_coverage_metrics(coverage, package_dir)
     end
 end
 
+"""
+$(SIGNATURES)
+
+Clean up after [`generate_coverage`](@ref).
+
+If `rm_directory`, will delete the coverage directory, otherwise only deletes the
+`$(LCOVINFO) file.
+"""
+function clean_coverage(pkg = nothing; rm_directory::Bool = true)
+    cd(pkgdir(pkg)) do
+        if rm_directory
+            rm(COVDIR; force = true, recursive = true)
+        else
+            rm(COVDIR, LCOVINFO)
+        end
+    end
+end
 
 format_gap(gap) = length(gap) == 1 ? "$(first(gap))" : "$(first(gap)) - $(last(gap))"
 function format_line(summary)
@@ -162,7 +176,6 @@ function format_line(summary)
         join(map(format_gap, summary.coverage_gaps), ", "),
     )
 end
-
 
 function Base.show(io::IO, coverage::PackageCoverage)
     table = reduce(vcat, map(format_line, [coverage.files..., coverage]))
@@ -209,7 +222,7 @@ function html_coverage(coverage::PackageCoverage; open = false, dir = tempdir())
         end
 
         title = "on branch $(branch)"
-        tracefile = "$(COVDIR)/lcov.info"
+        tracefile = joinpath(COVDIR, LCOVINFO)
 
         try
             run(`genhtml -t $(title) -o $(dir) $(tracefile)`)
@@ -223,10 +236,12 @@ function html_coverage(coverage::PackageCoverage; open = false, dir = tempdir())
         @info("generated coverage HTML")
         open && DefaultApplication.open(joinpath(dir, "index.html"))
     end
+    nothing
 end
-html_coverage(pkg = nothing; open = false, dir = tempdir()) =
-    html_coverage(generate_coverage(pkg), open = open, dir = dir)
 
+function html_coverage(pkg = nothing; open = false, dir = tempdir())
+    html_coverage(generate_coverage(pkg), open = open, dir = dir)
+end
 
 """
 $(SIGNATURES)
@@ -253,6 +268,20 @@ function report_coverage(pkg = nothing; target_coverage = 80)
     coverage = generate_coverage(pkg)
     show(coverage)
     report_coverage(coverage, target_coverage)
+end
+
+"""
+$(SIGNATURES)
+
+Generate a coverage Cobertura XML in the package `coverage` directory.
+
+This requires the Python package `lcov_cobertura` (>= v2.0.1), available in PyPl via
+`pip install lcov_cobertura`.
+"""
+function generate_xml(coverage::PackageCoverage, filename="cov.xml")
+    run(Cmd(Cmd(["lcov_cobertura", "lcov.info", "-o", filename]),
+            dir = joinpath(coverage.package_dir, COVDIR)))
+    @info("generated cobertura XML $filename")
 end
 
 end # module

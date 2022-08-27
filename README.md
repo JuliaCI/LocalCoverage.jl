@@ -22,6 +22,12 @@ output.  You can install it via
 
 Note that the code in this package assumes a reasonably recent `lcov` version when calling `genhtml`, ideally `1.13`, but `1.12` should work too. This does not prevent installation, only emits a warning.
 
+`LocalCoverage` also provides an option to generate a
+[Cobertura](https://cobertura.github.io/cobertura/) XML, which is used by JVM-related test
+suites such as Jenkins.  Using this requires the Python module
+[`lcov_cobertura`](https://github.com/eriwen/lcov-to-cobertura-xml) (>= v2.0.1).
+With Python installed, you can install this module via `pip install lcov_cobertura`.
+
 ## Usage
 
 When generating test coverage, Julia places annotated `*.cov` source code files in the same directory as the source code itself. Those files are processed to evaluate coverage data, represented by the `PackageCoverage` struct, and are automatically removed by the package. An `coverage/lcov.info` file is also created in the package dir.  We recommend using this package
@@ -35,7 +41,7 @@ using LocalCoverage
 generate_coverage(pkg = nothing; run_test = true) # defaults shown
 ```
 You can then navigate to the `coverage` subdirectory of the package directory (e.g.
-`~/.julia/dev/PackageName/coverage`) and see the generated coverage summaries. Note that the test execution step may be skipped if `*.cov` files were already generated (possibly by some external package).  
+`~/.julia/dev/PackageName/coverage`) and see the generated coverage summaries. Note that the test execution step may be skipped if `*.cov` files were already generated (possibly by some external package).
 
 To generate, and optionally open, the coverage report HTML do
 ```julia
