@@ -1,7 +1,7 @@
 using LocalCoverage, Test
 
 table_header = r"File name\s+.\s+Lines hit\s+.\s+Coverage\s+.\s+Missing"
-table_line = r"src\/LocalCoverage.jl\s+.\s+\d+\s*\/\s*\d+\s+.\s+\d+%\s+.\s+"
+table_line = r"src(\/|\\\\)LocalCoverage.jl?\s+.\s+\d+\s*\/\s*\d+\s+.\s+\d+%\s+.\s+"
 table_footer = r"TOTAL\s+.\s+\d+\s*\/\s*\d+\s+.\s+\d+%\s+.\s+."
 
 lockfile = joinpath(tempdir(), "testingLocalCoverage") # prevent infinite recursion when testing
