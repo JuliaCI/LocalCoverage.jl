@@ -168,13 +168,12 @@ end
 
 format_gap(gap) = length(gap) == 1 ? "$(first(gap))" : "$(first(gap)) - $(last(gap))"
 function format_line(summary)
-    hcat(
-        summary isa PackageCoverage ? "TOTAL" : summary.filename,
-        @sprintf("%3d / %3d", summary.lines_hit, summary.lines_tracked),
-        isnan(summary.coverage) ? "-" : @sprintf("%3.0f%%", summary.coverage),
-        summary isa PackageCoverage ? "" :
-        join(map(format_gap, summary.coverage_gaps), ", "),
-    )
+    name = (summary isa PackageCoverage ? "TOTAL" : relpath(summary.filename))
+    lines_hit = @sprintf("%3d / %3d", summary.lines_hit, summary.lines_tracked)
+    coverage = (isnan(summary.coverage) ? "-" : @sprintf("%3.0f%%", summary.coverage))
+    gaps = summary isa PackageCoverage ? "" :
+        join(map(format_gap, summary.coverage_gaps), ", ")
+    return hcat(name, lines_hit, coverage, gaps)
 end
 
 function Base.show(io::IO, coverage::PackageCoverage)

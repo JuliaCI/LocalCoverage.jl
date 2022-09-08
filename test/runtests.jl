@@ -3,7 +3,7 @@ using LocalCoverage, Test
 const pkg = "LocalCoverage"     # we test the package with itself
 
 table_header = r"File name\s+.\s+Lines hit\s+.\s+Coverage\s+.\s+Missing"
-table_line = r"src(\/|\\\\)LocalCoverage.jl?\s+.\s+\d+\s*\/\s*\d+\s+.\s+\d+%\s+.\s+"
+table_line = r"(?<!\/|\\\\)src(\/|\\\\)LocalCoverage.jl?\s+.\s+\d+\s*\/\s*\d+\s+.\s+\d+%\s+.\s+"
 table_footer = r"TOTAL\s+.\s+\d+\s*\/\s*\d+\s+.\s+\d+%\s+.\s+."
 
 # prevent infinite recursion when testing
@@ -23,6 +23,7 @@ if !isfile(lockfile)
     buffer = IOBuffer()
     show(buffer, cov)
     table = String(take!(buffer))
+    println(table)
     @test !isnothing(match(table_header, table))
     @test !isnothing(match(table_line, table))
     @test !isnothing(match(table_footer, table))
