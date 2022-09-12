@@ -2,7 +2,6 @@ module LocalCoverage
 
 using CoverageTools
 using DocStringExtensions
-using Printf
 using PrettyTables
 using DefaultApplication
 using LibGit2
@@ -101,13 +100,13 @@ function Base.show(io::IO, summary::PackageCoverage)
     row_coverage = map(x -> x.coverage_percentage, row_data)
     rows = map(row_data) do row
         @unpack name, total, hit, missed, coverage_percentage, gaps = row
-        percentage = isnan(coverage_percentage) ? "-" : @sprintf("%3.0f%%", coverage_percentage)
+        percentage = isnan(coverage_percentage) ? "-" : "$(round(Int, coverage_percentage))%"
         (; name, total, hit, missed, percentage, gaps)
     end
     header = ["Filename", "Lines", "Hit", "Miss", "%", "Gaps"]
     percentage_column = 5
     alignment = [:l, :r, :r, :r, :r, :l]
-    columns_width = [min(30, maximum(length ∘ first, rows)), 5, 5, 5, 5, 35]
+    columns_width = vcat(fill(0, 5), 55)
     if !get(io, :print_gaps, false)
         pop!(header)
         pop!(alignment)
