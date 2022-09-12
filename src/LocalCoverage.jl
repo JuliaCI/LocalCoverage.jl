@@ -1,10 +1,10 @@
 module LocalCoverage
 
-using CoverageTools
-using DocStringExtensions
-using PrettyTables
-using DefaultApplication
-using LibGit2
+import CoverageTools
+using DocStringExtensions: SIGNATURES, FIELDS
+using PrettyTables: pretty_table, Highlighter
+import DefaultApplication
+import LibGit2
 using UnPack: @unpack
 import Pkg
 
