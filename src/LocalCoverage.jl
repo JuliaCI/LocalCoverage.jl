@@ -177,12 +177,12 @@ function eval_coverage_metrics(coverage, package_dir)
         @unpack coverage = file
         lines_tracked = count(!isnothing, coverage)
         coverage_gaps = find_gaps(coverage)
-        lines_hit = lines_tracked - sum(length, coverage_gaps)
+        lines_hit = lines_tracked - sum(length, coverage_gaps; init = 0)
         filename = relpath(file.filename, package_dir)
         FileCoverageSummary(; filename, lines_hit, lines_tracked, coverage_gaps)
     end
-    lines_hit = sum(x -> x.lines_hit, files)
-    lines_tracked = sum(x -> x.lines_tracked, files)
+    lines_hit = sum(x -> x.lines_hit, files; init = 0)
+    lines_tracked = sum(x -> x.lines_tracked, files; init = 0)
     PackageCoverage(; package_dir, files, lines_hit, lines_tracked)
 end
 
