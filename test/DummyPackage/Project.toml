@@ -1,0 +1,5 @@
+name = "DummyPackage"
+uuid = "d56c877c-c572-4b7f-9f2e-7d24fd6b5b05"
+
+[deps]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
