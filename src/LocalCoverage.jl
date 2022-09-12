@@ -103,14 +103,16 @@ function Base.show(io::IO, summary::PackageCoverage)
         percentage = isnan(coverage_percentage) ? "-" : "$(round(Int, coverage_percentage))%"
         (; name, total, hit, missed, percentage, gaps)
     end
-    header = ["Filename", "Lines", "Hit", "Miss", "%", "Gaps"]
-    percentage_column = 5
-    alignment = [:l, :r, :r, :r, :r, :l]
-    columns_width = vcat(fill(0, 5), 55)
-    if !get(io, :print_gaps, false)
-        pop!(header)
-        pop!(alignment)
-        pop!(columns_width)
+    header = ["Filename", "Lines", "Hit", "Miss", "%"]
+    percentage_column = length(header)
+    alignment = [:l, :r, :r, :r, :r]
+    columns_width = fill(0, 5)
+    if get(io, :print_gaps, false)
+        push!(header, "Gaps")
+        push!(alignment, :l)
+        display_cols = last(get(io, :displaysize, 100))
+        push!(columns_width, display_cols - 45)
+    else
         rows = map(row -> Base.structdiff(row, NamedTuple{(:gaps,)}), rows)
     end
     highlighters = (
