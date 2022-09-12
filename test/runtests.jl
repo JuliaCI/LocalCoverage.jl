@@ -2,9 +2,9 @@ using LocalCoverage, Test
 
 const pkg = "LocalCoverage"     # we test the package with itself
 
-table_header = r"File name\s+.\s+Lines hit\s+.\s+Coverage\s+.\s+Missing"
-table_line = r"(?<!\/|\\\\)src(\/|\\\\)LocalCoverage.jl?\s+.\s+\d+\s*\/\s*\d+\s+.\s+\d+%\s+.\s+"
-table_footer = r"TOTAL\s+.\s+\d+\s*\/\s*\d+\s+.\s+\d+%\s+.\s+."
+table_header = r"Filename\s+.\s+Lines\s+.\s+Hit\s+.\s+Miss\s+.\s+%"
+table_line = r"(?<!\/|\\\\)src(\/|\\\\)LocalCoverage.jl?\s+.\s+\d+\s+.\s+\d+\s+.\s+\d+\s+.\s+\d+%"
+table_footer = r"TOTAL\s+.\s+\d+\s+.\s+\d+\s+.\s+\d+\s+.\s+\d+%"
 
 # prevent infinite recursion when testing
 const lockfile = joinpath(tempdir(), "testingLocalCoverage")
@@ -40,5 +40,9 @@ if !isfile(lockfile)
     rm(covdir, recursive = true)
 
     @test LocalCoverage.find_gaps([nothing, 0, 0, 0, 2, 3, 0, nothing, 0, 3, 0, 6, 2]) ==
-          [2:4, 7:7, 9:9, 11:11]
+        [2:4, 7:7, 9:9, 11:11]
+
+    @info "Printing coverage infomation for visual debugging"
+    show(stdout, cov)
+    show(IOContext(stdout, :print_gaps => true), cov)
 end
