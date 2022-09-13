@@ -1,14 +1,18 @@
 module LocalCoverage
 
-using CoverageTools
-using DocStringExtensions
-using Printf
-using PrettyTables
-using DefaultApplication
-using LibGit2
+import CoverageTools
+using DocStringExtensions: SIGNATURES, FIELDS
+using PrettyTables: pretty_table, Highlighter
+import DefaultApplication
+import LibGit2
+using UnPack: @unpack
 import Pkg
 
-export generate_coverage, clean_coverage, report_coverage, html_coverage, generate_xml
+export generate_coverage, clean_coverage, report_coverage_and_exit, html_coverage, generate_xml
+
+####
+#### helper functions and constants
+####
 
 "Directory for coverage results."
 const COVDIR = "coverage"
@@ -17,8 +21,21 @@ const COVDIR = "coverage"
 const LCOVINFO = "lcov.info"
 
 """
+$(SIGNATURES)
+
+Get the root directory of a package. For `nothing`, fall back to the active project.
+"""
+pkgdir(pkgstr::AbstractString) = abspath(joinpath(dirname(Base.find_package(pkgstr)), ".."))
+
+pkgdir(::Nothing) = dirname(Base.active_project())
+
+####
+#### coverage information internals
+####
+
+"""
 Summarized coverage data about a single file. Evaluated for all files of a package
-to compose a `PackageCoverage`.
+to compose a [`PackageCoverageSummary`](@ref).
 
 $(FIELDS)
 """
@@ -29,16 +46,14 @@ Base.@kwdef struct FileCoverageSummary
     lines_hit::Int
     "Number of lines with content to be tested"
     lines_tracked::Int
-    "Percentage of lines covered"
-    coverage::Float64
     "List of all line ranges without coverage"
     coverage_gaps::Vector{UnitRange{Int}}
 end
 
 """
 Summarized coverage data about a specific package. Contains a list of
-`FileCoverageSummary` relative to the package files as well as global metrics
-about the package coverage.
+[`FileCoverageSummary`](@ref) relative to the package files as well as global metrics about
+the package coverage.
 
 See [`report_coverage`](@ref).
 
@@ -53,18 +68,77 @@ Base.@kwdef struct PackageCoverage
     lines_hit::Int
     "Total number of lines with content to be tested in the package"
     lines_tracked::Int
-    "Percentage of package lines covered"
-    coverage::Float64
 end
 
-"""
-$(SIGNATURES)
+function Base.getproperty(summary::Union{PackageCoverage,FileCoverageSummary}, sym::Symbol)
+    if sym ≡ :coverage_percentage
+        100 * summary.lines_hit / summary.lines_tracked
+    else
+        getfield(summary, sym)
+    end
+end
 
-Get the root directory of a package. For `nothing`, fall back to the active project.
-"""
-pkgdir(pkgstr::AbstractString) = abspath(joinpath(dirname(Base.find_package(pkgstr)), ".."))
+format_gap(gap) = length(gap) == 1 ? "$(first(gap))" : "$(first(gap))–$(last(gap))"
 
-pkgdir(::Nothing) = dirname(Base.active_project())
+format_gaps(summary::FileCoverageSummary) = join(map(format_gap, summary.coverage_gaps), ", ")
+
+function format_line(summary::Union{PackageCoverage,FileCoverageSummary})
+    @unpack lines_hit, lines_tracked, coverage_percentage = summary
+    is_pkg = summary isa PackageCoverage
+    (name = is_pkg ? "TOTAL" : summary.filename,
+     total = lines_tracked,
+     hit = lines_hit,
+     missed = lines_tracked - lines_hit,
+     coverage_percentage,
+     gaps = is_pkg ? "" : format_gaps(summary))
+end
+
+function Base.show(io::IO, summary::PackageCoverage)
+    @unpack files, package_dir = summary
+    row_data = map(format_line, files)
+    push!(row_data, format_line(summary))
+    row_coverage = map(x -> x.coverage_percentage, row_data)
+    rows = map(row_data) do row
+        @unpack name, total, hit, missed, coverage_percentage, gaps = row
+        percentage = isnan(coverage_percentage) ? "-" : "$(round(Int, coverage_percentage))%"
+        (; name, total, hit, missed, percentage, gaps)
+    end
+    header = ["Filename", "Lines", "Hit", "Miss", "%"]
+    percentage_column = length(header)
+    alignment = [:l, :r, :r, :r, :r]
+    columns_width = fill(0, 5)
+    if get(io, :print_gaps, false)
+        push!(header, "Gaps")
+        push!(alignment, :l)
+        display_cols = last(get(io, :displaysize, 100))
+        push!(columns_width, display_cols - 45)
+    else
+        rows = map(row -> Base.structdiff(row, NamedTuple{(:gaps,)}), rows)
+    end
+    highlighters = (
+        Highlighter(
+            (data, i, j) -> j == percentage_column && row_coverage[i] <= 50,
+            bold = true,
+            foreground = :red,
+        ),
+        Highlighter((data, i, j) -> j == percentage_column && row_coverage[i] <= 70, foreground = :yellow),
+        Highlighter((data, i, j) -> j == percentage_column && row_coverage[i] >= 90, foreground = :green),
+    )
+
+    pretty_table(
+        io,
+        rows;
+        title = "Coverage of $(package_dir)",
+        header,
+        alignment,
+        crop = :none,
+        linebreaks = true,
+        columns_width,
+        autowrap = true,
+        highlighters,
+        body_hlines = [length(rows) - 1],
+    )
+end
 
 """
 $(SIGNATURES)
@@ -89,6 +163,9 @@ function find_gaps(coverage)
     gaps
 end
 
+####
+#### API
+####
 
 """
 $(SIGNATURES)
@@ -96,42 +173,42 @@ $(SIGNATURES)
 Evaluate the coverage metrics for the given pkg.
 """
 function eval_coverage_metrics(coverage, package_dir)
-    coverage_list = map(coverage) do file
-        tracked = count(!isnothing, file.coverage)
-        gaps = find_gaps(file.coverage)
-        hit = tracked - sum(length.(gaps))
-
-        FileCoverageSummary(file.filename, hit, tracked, 100 * hit / tracked, gaps)
+    files = map(coverage) do file
+        @unpack coverage = file
+        lines_tracked = count(!isnothing, coverage)
+        coverage_gaps = find_gaps(coverage)
+        lines_hit = lines_tracked - sum(length, coverage_gaps; init = 0)
+        filename = relpath(file.filename, package_dir)
+        FileCoverageSummary(; filename, lines_hit, lines_tracked, coverage_gaps)
     end
-
-    total_hit = sum(getfield.(coverage_list, :lines_hit))
-    total_tracked = sum(getfield.(coverage_list, :lines_tracked))
-
-    PackageCoverage(
-        package_dir,
-        coverage_list,
-        total_hit,
-        total_tracked,
-        100 * total_hit / total_tracked,
-    )
+    lines_hit = sum(x -> x.lines_hit, files; init = 0)
+    lines_tracked = sum(x -> x.lines_tracked, files; init = 0)
+    PackageCoverage(; package_dir, files, lines_hit, lines_tracked)
 end
 
 """
 $(SIGNATURES)
 
-Generate a PackageCoverage that summarizes coverage results for package `pkg`.
+Generate a summary of coverage results for package `pkg`.
 
-If no pkg is supplied, the method operates in the currently active pkg.
+If no `pkg` is supplied, the method operates in the currently active package.
 
-A percentage target_coverage may be specified to control the color coding of the
-pretty printed results.
-
-The test execution step may be skipped by passing run_test=false, allowing an
+The test execution step may be skipped by passing `run_test = false`, allowing an
 easier use in combination with other test packages.
 
 An lcov file is also produced in `Pkg.dir(pkg, \"$(COVDIR)\", \"$(LCOVINFO)\")`.
 
 See [`report_coverage`](@ref), [`clean_coverage`](@ref).
+
+# Printing
+
+Printing of the result can be controlled via `IOContext`.
+
+```julia
+cov = generate_coverage(pkg)
+show(IOContext(stdout, :print_gaps => true), cov) # print coverage gap information
+```
+
 """
 function generate_coverage(pkg = nothing; run_test = true)
     if run_test
@@ -161,48 +238,9 @@ function clean_coverage(pkg = nothing; rm_directory::Bool = true)
         if rm_directory
             rm(COVDIR; force = true, recursive = true)
         else
-            rm(COVDIR, LCOVINFO)
+            rm(joinpath(COVDIR, LCOVINFO))
         end
     end
-end
-
-format_gap(gap) = length(gap) == 1 ? "$(first(gap))" : "$(first(gap)) - $(last(gap))"
-function format_line(summary)
-    hcat(
-        summary isa PackageCoverage ? "TOTAL" : summary.filename,
-        @sprintf("%3d / %3d", summary.lines_hit, summary.lines_tracked),
-        isnan(summary.coverage) ? "-" : @sprintf("%3.0f%%", summary.coverage),
-        summary isa PackageCoverage ? "" :
-        join(map(format_gap, summary.coverage_gaps), ", "),
-    )
-end
-
-function Base.show(io::IO, coverage::PackageCoverage)
-    table = reduce(vcat, map(format_line, [coverage.files..., coverage]))
-    row_coverage = [getfield.(coverage.files, :coverage)... coverage.coverage]
-
-    highlighters = (
-        Highlighter(
-            (data, i, j) -> j == 3 && row_coverage[i] <= 50,
-            bold = true,
-            foreground = :red,
-        ),
-        Highlighter((data, i, j) -> j == 3 && row_coverage[i] <= 70, foreground = :yellow),
-        Highlighter((data, i, j) -> j == 3 && row_coverage[i] >= 90, foreground = :green),
-    )
-
-    pretty_table(
-        io,
-        table,
-        header = ["File name", "Lines hit", "Coverage", "Missing"],
-        alignment = [:l, :r, :r, :r],
-        crop = :none,
-        linebreaks = true,
-        columns_width = [min(30, maximum(length.(table[:, 1]))), 11, 8, 35],
-        autowrap = true,
-        highlighters = highlighters,
-        body_hlines = [size(table, 1) - 1],
-    )
 end
 
 """
@@ -251,24 +289,41 @@ the target coverage was met or with a status code 1 otherwise. Useful in command
 line, e.g.
 
 ```bash
-julia --project -e'using LocalCoverage; report_coverage(target_coverage=90)'
+julia --project=@. -e'using LocalCoverage; report_coverage_and_exit(;target_coverage=90)'
 ```
 
-See [`generate_coverage`](@ref).
+# Arguments
+
+The only positional argument is either information generated by [`generate_coverage`](@ref),
+or a package name (defaults to `nothing`, the active project). For the latter, coverage will
+be generated.
+
+# Keyword arguments and defaults
+
+- `target_coverage = 80` determines the threshold for passing coverage
+- `print_summary = true` controls whether a detailed summary is printed
+- `print_gaps = false` controls whether gaps are printed
+- `io` can be used for redirecting the output
 """
-function report_coverage(coverage::PackageCoverage, target_coverage = 80)
-    was_target_met = coverage.coverage >= target_coverage
-    print(" Target coverage ", was_target_met ? "was met" : "wasn't met", " (")
-    printstyled("$target_coverage%", color = was_target_met ? :green : :red, bold = true)
-    println(")")
+function report_coverage_and_exit(coverage::PackageCoverage;
+                                  target_coverage::Real = 80,
+                                  print_summary::Bool = true,
+                                  print_gaps::Bool = false,
+                                  io::IO = stdout)
+    was_target_met = coverage.coverage_percentage >= target_coverage
+    print_summary && show(IOContext(io, :print_gaps => print_gaps), coverage)
+    print(io, " Target coverage ", was_target_met ? "was met" : "wasn't met", " (")
+    printstyled(io, "$target_coverage%", color = was_target_met ? :green : :red, bold = true)
+    println(io, ")")
     exit(was_target_met ? 0 : 1)
 end
 
-function report_coverage(pkg = nothing; target_coverage = 80)
+function report_coverage_and_exit(pkg = nothing; kwargs...)
     coverage = generate_coverage(pkg)
-    show(coverage)
-    report_coverage(coverage, target_coverage)
+    report_coverage_and_exit(coverage; kwargs...)
 end
+
+Base.@deprecate report_coverage() report_coverage_and_exit()
 
 """
 $(SIGNATURES)
