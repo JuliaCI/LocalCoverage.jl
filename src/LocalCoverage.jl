@@ -238,7 +238,7 @@ function clean_coverage(pkg = nothing; rm_directory::Bool = true)
         if rm_directory
             rm(COVDIR; force = true, recursive = true)
         else
-            rm(COVDIR, LCOVINFO)
+            rm(joinpath(COVDIR, LCOVINFO))
         end
     end
 end
