@@ -356,20 +356,16 @@ function write_lcov_to_xml(xmlpath::String, lcovpath::String)
 end
 
 """
-Property container for LCOV -> Cobertura conversion
+Property container for LCOV -> Cobertura conversion.
+For internal use only.
 
-$(TYPEDFIELDS)
+$(FIELDS)
 """
 struct LcovParser
     "LCOV file path"
     lcov_file::String
     "Base directory for path"
     base_dir::String
-    "WIP - filtering function to exclude some coverage information"
-    excludes::Function
-    function LcovParser(lcov_file, base_dir=".", excludes=x -> false)
-        return new(lcov_file, base_dir, excludes)
-    end
 end
 
 """
@@ -501,12 +497,6 @@ function lcov_parse(lcov::LcovParser; timestamp=round(Int, Dates.datetime2unix(D
                 end
             end
         end
-
-        # Exclude packages
-        # excluded = [x for x in keys(coverage_data["packages"]) for exc in lcov.excludes if exc == x]
-        # for package in excluded
-        #     delete!(coverage_data["packages"], package)
-        # end
 
         # Compute line coverage rates
         for package_data in values(coverage_data["packages"])
