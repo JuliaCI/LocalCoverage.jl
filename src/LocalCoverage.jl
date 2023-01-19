@@ -393,7 +393,7 @@ function lcov_parse(lcov::LcovParser; timestamp=round(Int, Dates.datetime2unix(D
     file_branches_total = 0
     file_branches_covered = 0
 
-    for line in eachline(lcov.lcov_data)
+    for line in eachline(lcov.lcov_file)
         if strip(line) == "end_of_record"
             if !isnothing(current_file)
                 package_dict = coverage_data["packages"][package]
