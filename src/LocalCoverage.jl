@@ -347,7 +347,7 @@ $(SIGNATURES)
 
 Convert a LCOV coverage file to a Cobertura coverage file. Relies on EzXML
 """
-function write_lcov_to_xml(xmlpath::String, lcovpath::String)
+function write_lcov_to_xml(xmlpath::AbstractString, lcovpath::AbstractString;base_dir="."::AbstractString)
     lcov = LcovParser(lcovpath,base_dir)
     xmlcoverage = lcov_to_xml(lcov)
     open(xmlpath, "w") do io
