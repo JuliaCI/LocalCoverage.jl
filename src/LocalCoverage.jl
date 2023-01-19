@@ -347,9 +347,9 @@ $(SIGNATURES)
 
 Convert a LCOV coverage file to a Cobertura coverage file. Relies on EzXML
 """
-function writexml(xmlpath::String, lcovpath::String)
-    lcov = LcovCobertura(lcovpath)
-    xmlcoverage = convert(lcov)
+function write_lcov_to_xml(xmlpath::String, lcovpath::String)
+    lcov = LcovParser(lcovpath)
+    xmlcoverage = lcov_to_xml(lcov)
     open(xmlpath, "w") do io
         prettyprint(io, xmlcoverage)
     end
@@ -361,19 +361,19 @@ Property container for LCOV -> Cobertura conversion
 $(FIELDS)
 """
 # TODO see if this is really necessary...
-struct LcovCobertura
+struct LcovParser
     lcov_data::String
     base_dir::String
     excludes::Function
     format::Function
-    function LcovCobertura(lcov_data, base_dir=".", excludes=x -> false, demangle=false::Bool)
-        if demangle
-            demangler = Demangler()
-            format = demangler.demangle
-        else
-            format = identity
-        end
-        return new(lcov_data, base_dir, excludes, format)
+    function LcovParser(lcov_data, base_dir=".", excludes=x -> false)#, demangle=false::Bool)
+        # if demangle
+        #     demangler = Demangler()
+        #     format = demangler.demangle
+        # else
+        #     format = identity
+        # end
+        return new(lcov_data, base_dir, excludes, identity)
     end
 end
 
@@ -382,7 +382,7 @@ $(SIGNATURES)
 
 Convert a LCOV file to a nested dictionary structure ready fr XML conversion
 """
-function parse(lcov::LcovCobertura; timestamp=round(Int, datetime2unix(Dates.now())))
+function lcov_parse(lcov::LcovParser; timestamp=round(Int, Dates.datetime2unix(Dates.now())))
     coverage_data = OrderedDict(
         "packages" => OrderedDict{String,Any}(),
         "summary" => OrderedDict(
@@ -529,8 +529,8 @@ $(SIGNATURES)
 
 Convert lcov file to cobertura XML using options from this instance.
 """
-function convert(lcov::LcovCobertura)
-    coverage_data = parse(lcov)
+function lcov_to_xml(lcov::LcovParser)
+    coverage_data = lcov_parse(lcov)
     return generate_cobertura_xml(lcov, coverage_data)
 end
 
@@ -540,7 +540,7 @@ $(SIGNATURES)
 
 Given parsed coverage data, return a String cobertura XML representation.
 """
-function generate_cobertura_xml(lcov::LcovCobertura, coverage_data)
+function generate_cobertura_xml(lcov::LcovParser, coverage_data)
     # doctype = EzXML.readdtd("http://cobertura.sourceforge.net/xml/coverage-04.dtd")
     document = EzXML.XMLDocument()
     root = ElementNode("coverage")
