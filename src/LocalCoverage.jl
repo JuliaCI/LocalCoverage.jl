@@ -358,22 +358,17 @@ end
 """
 Property container for LCOV -> Cobertura conversion
 
-$(FIELDS)
+$(TYPEDFIELDS)
 """
-# TODO see if this is really necessary...
 struct LcovParser
-    lcov_data::String
+    "LCOV file path"
+    lcov_file::String
+    "Base directory for path"
     base_dir::String
+    "WIP - filtering function to exclude some coverage information"
     excludes::Function
-    format::Function
-    function LcovParser(lcov_data, base_dir=".", excludes=x -> false)#, demangle=false::Bool)
-        # if demangle
-        #     demangler = Demangler()
-        #     format = demangler.demangle
-        # else
-        #     format = identity
-        # end
-        return new(lcov_data, base_dir, excludes, identity)
+    function LcovParser(lcov_file, base_dir=".", excludes=x -> false)
+        return new(lcov_file, base_dir, excludes)
     end
 end
 
@@ -588,7 +583,7 @@ function generate_cobertura_xml(lcov::LcovParser, coverage_data)
             methods_el = ElementNode("methods")
             for (method_name, (line, hits)) in class_data["methods"]
                 method_el = ElementNode("method")
-                method_el["name"] = format(method_name)
+                method_el["name"] = method_name
                 method_el["signature"] = ""
                 method_el["line-rate"] = hits > 0 ? "1.0" : "0.0"
                 method_el["branch-rate"] = hits > 0 ? "1.0" : "0.0"
