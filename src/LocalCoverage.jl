@@ -502,7 +502,6 @@ function lcov_parse(lcov::LcovParser; timestamp=round(Int, Dates.datetime2unix(D
             end
         end
 
-        # TODO figure a julian way to exclude some packages, e.g. with a function as in `filter`
         # Exclude packages
         # excluded = [x for x in keys(coverage_data["packages"]) for exc in lcov.excludes if exc == x]
         # for package in excluded
