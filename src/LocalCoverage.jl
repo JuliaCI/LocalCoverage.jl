@@ -88,12 +88,12 @@ format_gaps(summary::FileCoverageSummary) = join(map(format_gap, summary.coverag
 function format_line(summary::Union{PackageCoverage,FileCoverageSummary})
     @unpack lines_hit, lines_tracked, coverage_percentage = summary
     is_pkg = summary isa PackageCoverage
-    (name=is_pkg ? "TOTAL" : summary.filename,
-        total=lines_tracked,
-        hit=lines_hit,
-        missed=lines_tracked - lines_hit,
-        coverage_percentage,
-        gaps=is_pkg ? "" : format_gaps(summary))
+    (name = is_pkg ? "TOTAL" : summary.filename,
+     total = lines_tracked,
+     hit = lines_hit,
+     missed = lines_tracked - lines_hit,
+     coverage_percentage,
+     gaps = is_pkg ? "" : format_gaps(summary))
 end
 
 function Base.show(io::IO, summary::PackageCoverage)
@@ -121,25 +121,25 @@ function Base.show(io::IO, summary::PackageCoverage)
     highlighters = (
         Highlighter(
             (data, i, j) -> j == percentage_column && row_coverage[i] <= 50,
-            bold=true,
-            foreground=:red,
+            bold = true,
+            foreground = :red,
         ),
-        Highlighter((data, i, j) -> j == percentage_column && row_coverage[i] <= 70, foreground=:yellow),
-        Highlighter((data, i, j) -> j == percentage_column && row_coverage[i] >= 90, foreground=:green),
+        Highlighter((data, i, j) -> j == percentage_column && row_coverage[i] <= 70, foreground = :yellow),
+        Highlighter((data, i, j) -> j == percentage_column && row_coverage[i] >= 90, foreground = :green),
     )
 
     pretty_table(
         io,
         rows;
-        title="Coverage of $(package_dir)",
+        title = "Coverage of $(package_dir)",
         header,
         alignment,
-        crop=:none,
-        linebreaks=true,
+        crop = :none,
+        linebreaks = true,
         columns_width,
-        autowrap=true,
+        autowrap = true,
         highlighters,
-        body_hlines=[length(rows) - 1]
+        body_hlines = [length(rows) - 1],
     )
 end
 
@@ -180,12 +180,12 @@ function eval_coverage_metrics(coverage, package_dir)
         @unpack coverage = file
         lines_tracked = count(!isnothing, coverage)
         coverage_gaps = find_gaps(coverage)
-        lines_hit = lines_tracked - sum(length, coverage_gaps; init=0)
+        lines_hit = lines_tracked - sum(length, coverage_gaps; init = 0)
         filename = relpath(file.filename, package_dir)
         FileCoverageSummary(; filename, lines_hit, lines_tracked, coverage_gaps)
     end
-    lines_hit = sum(x -> x.lines_hit, files; init=0)
-    lines_tracked = sum(x -> x.lines_tracked, files; init=0)
+    lines_hit = sum(x -> x.lines_hit, files; init = 0)
+    lines_tracked = sum(x -> x.lines_tracked, files; init = 0)
     PackageCoverage(; package_dir, files, lines_hit, lines_tracked)
 end
 
@@ -213,9 +213,9 @@ show(IOContext(stdout, :print_gaps => true), cov) # print coverage gap informati
 ```
 
 """
-function generate_coverage(pkg=nothing; run_test=true)
+function generate_coverage(pkg = nothing; run_test = true)
     if run_test
-        isnothing(pkg) ? Pkg.test(; coverage=true) : Pkg.test(pkg; coverage=true)
+        isnothing(pkg) ? Pkg.test(; coverage = true) : Pkg.test(pkg; coverage = true)
     end
     package_dir = pkgdir(pkg)
     cd(package_dir) do
@@ -236,10 +236,10 @@ Clean up after [`generate_coverage`](@ref).
 If `rm_directory`, will delete the coverage directory, otherwise only deletes the
 `$(LCOVINFO) file.
 """
-function clean_coverage(pkg=nothing; rm_directory::Bool=true)
+function clean_coverage(pkg = nothing; rm_directory::Bool = true)
     cd(pkgdir(pkg)) do
         if rm_directory
-            rm(COVDIR; force=true, recursive=true)
+            rm(COVDIR; force = true, recursive = true)
         else
             rm(joinpath(COVDIR, LCOVINFO))
         end
@@ -254,7 +254,7 @@ inside `dir`.
 
 See [`generate_coverage`](@ref).
 """
-function html_coverage(coverage::PackageCoverage; open=false, dir=tempdir())
+function html_coverage(coverage::PackageCoverage; open = false, dir = tempdir())
     cd(coverage.package_dir) do
         branch = try
             LibGit2.headname(GitRepo("./"))
@@ -280,8 +280,8 @@ function html_coverage(coverage::PackageCoverage; open=false, dir=tempdir())
     nothing
 end
 
-function html_coverage(pkg=nothing; open=false, dir=tempdir())
-    html_coverage(generate_coverage(pkg), open=open, dir=dir)
+function html_coverage(pkg = nothing; open = false, dir = tempdir())
+    html_coverage(generate_coverage(pkg), open = open, dir = dir)
 end
 
 """
@@ -309,19 +309,19 @@ be generated.
 - `io` can be used for redirecting the output
 """
 function report_coverage_and_exit(coverage::PackageCoverage;
-    target_coverage::Real=80,
-    print_summary::Bool=true,
-    print_gaps::Bool=false,
-    io::IO=stdout)
+                                  target_coverage::Real = 80,
+                                  print_summary::Bool = true,
+                                  print_gaps::Bool = false,
+                                  io::IO = stdout)
     was_target_met = coverage.coverage_percentage >= target_coverage
     print_summary && show(IOContext(io, :print_gaps => print_gaps), coverage)
     print(io, " Target coverage ", was_target_met ? "was met" : "wasn't met", " (")
-    printstyled(io, "$target_coverage%", color=was_target_met ? :green : :red, bold=true)
+    printstyled(io, "$target_coverage%", color = was_target_met ? :green : :red, bold = true)
     println(io, ")")
     exit(was_target_met ? 0 : 1)
 end
 
-function report_coverage_and_exit(pkg=nothing; kwargs...)
+function report_coverage_and_exit(pkg = nothing; kwargs...)
     coverage = generate_coverage(pkg)
     report_coverage_and_exit(coverage; kwargs...)
 end
@@ -338,7 +338,7 @@ This requires the Python package `lcov_cobertura` (>= v2.0.1), available in PyPl
 """
 function generate_xml(coverage::PackageCoverage, filename="cov.xml")
     run(Cmd(Cmd(["lcov_cobertura", "lcov.info", "-o", filename]),
-        dir=joinpath(coverage.package_dir, COVDIR)))
+            dir = joinpath(coverage.package_dir, COVDIR)))
     @info("generated cobertura XML $filename")
 end
 
