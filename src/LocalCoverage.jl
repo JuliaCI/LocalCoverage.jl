@@ -371,9 +371,9 @@ end
 """
 $(SIGNATURES)
 
-Convert a LCOV file to a nested dictionary structure ready fr XML conversion
+Convert a LCOV file to a nested dictionary structure ready for XML conversion
 """
-function lcov_parse(lcov::LcovParser; timestamp=round(Int, Dates.datetime2unix(Dates.now())))
+function lcov_parse(lcov::LcovParser; timestamp = round(Int, Dates.datetime2unix(Dates.now())))
     coverage_data = OrderedDict(
         "packages" => OrderedDict{String,Any}(),
         "summary" => OrderedDict(
