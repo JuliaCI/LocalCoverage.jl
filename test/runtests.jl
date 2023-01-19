@@ -13,10 +13,15 @@ covdir = normpath(joinpath(@__DIR__, "DummyPackage", "coverage"))
 
 clean_coverage(pkg)
 @test isdir(LocalCoverage.pkgdir(pkg))
-tracefile = joinpath(covdir, "lcov.info")
-@test !isfile(tracefile)
+lcovtrace = joinpath(covdir, "lcov.info")
+@test !isfile(lcovtrace)
 
 cov = generate_coverage(pkg)
+
+xmltrace = joinpath(covdir,"lcov.xml")
+write_lcov_to_xml(xmltrace,lcovtrace)
+
+
 buffer = IOBuffer()
 show(buffer, cov)
 table = String(take!(buffer))
@@ -32,7 +37,7 @@ if !isnothing(Sys.which("genhtml"))
     end
 end
 
-@test isfile(tracefile)
+@test isfile(lcovtrace)
 rm(covdir, recursive = true)
 
 @info "Printing coverage infomation for visual debugging"
