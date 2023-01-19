@@ -525,10 +525,12 @@ $(SIGNATURES)
 Given parsed coverage data, return a String cobertura XML representation.
 """
 function generate_cobertura_xml(lcov::LcovParser, coverage_data)
-    # doctype = EzXML.readdtd("http://cobertura.sourceforge.net/xml/coverage-04.dtd")
     document = EzXML.XMLDocument()
     root = ElementNode("coverage")
     setroot!(document, root)
+    dtd = DTDNode("coverage","http://cobertura.sourceforge.net/xml/coverage-04.dtd")
+    setdtd!(document,dtd)
+
     summary = coverage_data["summary"]
     root["branch-rate"] = _percent(summary["branches-total"], summary["branches-covered"])
     root["branches-covered"] = string(summary["branches-covered"])
