@@ -19,7 +19,13 @@ lcovtrace = joinpath(covdir, "lcov.info")
 cov = generate_coverage(pkg)
 
 xmltrace = joinpath(covdir,"lcov.xml")
-write_lcov_to_xml(xmltrace,lcovtrace)
+write_lcov_to_xml(xmltrace, lcovtrace)
+open(xmltrace, "r") do io
+    header = readline(io)
+    doctype = readline(io)
+    @test header == """<?xml version="1.0" encoding="UTF-8"?>"""
+    @test startswith(doctype, "<!DOCTYPE coverage")
+end
 
 
 buffer = IOBuffer()
