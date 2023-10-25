@@ -50,5 +50,5 @@ html_coverage(coverage::PackageCoverage; open = false, dir = tempdir()) # defaul
 
 A utility method is also provided to easily print coverage statistics and exit with a status reflecting if some given target coverage was met. It can be used from a shell by doing
 ```bash
-julia --project -e'using LocalCoverage; report_coverage(target_coverage=90)'
+julia --project -e'using LocalCoverage; report_coverage_and_exit(target_coverage=90)'
 ```
