@@ -12,7 +12,8 @@ import Dates
 using EzXML
 using OrderedCollections
 
-export generate_coverage, clean_coverage, report_coverage_and_exit, html_coverage, generate_xml, write_lcov_to_xml
+export generate_coverage, clean_coverage, report_coverage_and_exit, html_coverage,
+    generate_xml, write_lcov_to_xml
 
 ####
 #### helper functions and constants
@@ -125,8 +126,10 @@ function Base.show(io::IO, summary::PackageCoverage)
             bold = true,
             foreground = :red,
         ),
-        Highlighter((data, i, j) -> j == percentage_column && row_coverage[i] <= 70, foreground = :yellow),
-        Highlighter((data, i, j) -> j == percentage_column && row_coverage[i] >= 90, foreground = :green),
+        Highlighter((data, i, j) -> j == percentage_column && row_coverage[i] <= 70,
+                    foreground = :yellow),
+        Highlighter((data, i, j) -> j == percentage_column && row_coverage[i] >= 90,
+                    foreground = :green),
     )
 
     pretty_table(
