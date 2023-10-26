@@ -59,7 +59,7 @@ Summarized coverage data about a specific package. Contains a list of
 [`FileCoverageSummary`](@ref) relative to the package files as well as global metrics about
 the package coverage.
 
-See [`report_coverage`](@ref).
+See [`report_coverage_and_exit`](@ref).
 
 $(FIELDS)
 """
@@ -207,7 +207,7 @@ be shown as having 0% coverage.
 
 An lcov file is also produced in `Pkg.dir(pkg, \"$(COVDIR)\", \"$(LCOVINFO)\")`.
 
-See [`report_coverage`](@ref), [`clean_coverage`](@ref).
+See [`report_coverage_and_exit`](@ref), [`clean_coverage`](@ref).
 
 # Printing
 
@@ -219,10 +219,10 @@ cov = generate_coverage(pkg)
 show(IOContext(stdout, :print_gaps => true), cov) # print coverage gap information
 ```
 """
-function generate_coverage(pkg = nothing; 
-                           run_test = true, 
-                           test_args = [""], 
-                           folder_list = ["src"], 
+function generate_coverage(pkg = nothing;
+                           run_test = true,
+                           test_args = [""],
+                           folder_list = ["src"],
                            file_list = [])::PackageCoverage
     if run_test
         if isnothing(pkg)
@@ -303,11 +303,11 @@ function html_coverage(coverage::PackageCoverage; open = false, dir = tempdir())
     nothing
 end
 
-function html_coverage(pkg = nothing; 
-                       open = false, 
-                       dir = tempdir(), 
-                       test_args = [""], 
-                       folder_list = ["src"], 
+function html_coverage(pkg = nothing;
+                       open = false,
+                       dir = tempdir(),
+                       test_args = [""],
+                       folder_list = ["src"],
                        file_list = [])
     gen_cov() = generate_coverage(pkg; test_args = test_args, folder_list = folder_list, file_list = file_list)
     html_coverage(gen_cov(), open = open, dir = dir)
@@ -351,15 +351,13 @@ function report_coverage_and_exit(coverage::PackageCoverage;
 end
 
 function report_coverage_and_exit(pkg = nothing;
-                                  test_args = [""], 
-                                  folder_list = ["src"], 
+                                  test_args = [""],
+                                  folder_list = ["src"],
                                   file_list = [],
                                   kwargs...)
     coverage = generate_coverage(pkg; test_args = test_args, folder_list = folder_list, file_list = file_list)
     report_coverage_and_exit(coverage; kwargs...)
 end
-
-Base.@deprecate report_coverage() report_coverage_and_exit()
 
 """
 $(SIGNATURES)
