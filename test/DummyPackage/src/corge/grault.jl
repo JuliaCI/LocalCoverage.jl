@@ -1,0 +1,2 @@
+# untested
+grault() = 42

@@ -4,6 +4,7 @@ authors = ["Tamas K. Papp <tkpapp@gmail.com>"]
 version = "0.6.0"
 
 [deps]
+Coverage = "a2441757-f6aa-5fb2-8edb-039e3f45d037"
 CoverageTools = "c36e975a-824b-4404-a568-ef97ca766997"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DefaultApplication = "3f0dd361-4fe0-5fc6-8523-80b14ec94d85"
