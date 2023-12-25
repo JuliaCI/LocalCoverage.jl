@@ -152,10 +152,14 @@ If `show_summary` is true, a summary will be printed to `stdout`.
 is placed in `Pkg.dir(pkg, \"$(COVDIR)\")`. The summary is in
 `Pkg.dir(pkg, \"$(COVDIR)\", \"$(LCOVINFO)\")`.
 
+If `test` is false, then existing coverage files will be used to generate the summary.
+
 Use [`clean_coverage`](@ref) for cleaning.
 """
-function generate_coverage(pkg; genhtml=true, show_summary=true, genxml=false)
-    Pkg.test(pkg; coverage = true)
+function generate_coverage(pkg; genhtml=true, show_summary=true, genxml=false, test=true)
+    if test
+      Pkg.test(pkg; coverage = true)
+    end
     coverage = cd(pkgdir(pkg)) do
         coverage = CoverageTools.process_folder()
         isdir(COVDIR) || mkdir(COVDIR)
