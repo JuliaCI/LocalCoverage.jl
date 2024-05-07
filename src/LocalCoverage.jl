@@ -286,12 +286,12 @@ inside `dir`.
 
 See [`generate_coverage`](@ref).
 """
-function html_coverage(coverage::PackageCoverage; open = false, dir = tempdir())
+function html_coverage(coverage::PackageCoverage; gitroot = ".", open = false, dir = tempdir())
     cd(coverage.package_dir) do
         branch = try
-            LibGit2.headname(GitRepo("./"))
+            LibGit2.headname(GitRepo(gitroot))
         catch
-            @warn "git branch could not be detected"
+            @warn "git branch could not be detected, pass the `gitroot` kwarg if the git root is not the same as the package directory."
         end
 
         title = "on branch $(branch)"
@@ -313,13 +313,14 @@ function html_coverage(coverage::PackageCoverage; open = false, dir = tempdir())
 end
 
 function html_coverage(pkg = nothing;
+                       gitroot = ".",
                        open = false,
                        dir = tempdir(),
                        test_args = [""],
                        folder_list = ["src"],
                        file_list = [])
     gen_cov() = generate_coverage(pkg; test_args = test_args, folder_list = folder_list, file_list = file_list)
-    html_coverage(gen_cov(), open = open, dir = dir)
+    html_coverage(gen_cov(); gitroot = gitroot, open = open, dir = dir)
 end
 
 """
@@ -379,7 +380,7 @@ This requires the Python package `lcov_cobertura` (>= v2.0.1), available in PyPl
 function generate_xml(coverage::PackageCoverage, filename="cov.xml")
     run(Cmd(Cmd(["lcov_cobertura", "lcov.info", "-o", filename]),
             dir = joinpath(coverage.package_dir, COVDIR)))
-    @info("generated cobertura XML $filename")
+    @info("generated cobertura XML $(joinpath(coverage.package_dir, COVDIR, filename)).")
 end
 
 """
