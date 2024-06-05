@@ -255,7 +255,7 @@ function generate_coverage(pkg = nothing;
         mkpath(COVDIR)
         tracefile = joinpath(COVDIR, LCOVINFO)
         CoverageTools.LCOV.writefile(tracefile, coverage)
-        CoverageTools.clean_folder("./")
+        CoverageTools.clean_folder(package_dir)
         eval_coverage_metrics(coverage, package_dir)
     end
 end
