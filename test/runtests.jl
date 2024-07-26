@@ -1,4 +1,6 @@
 using LocalCoverage, Test
+using FileCmp
+
 import Pkg
 
 Pkg.activate("./DummyPackage/")
@@ -15,7 +17,8 @@ function test_coverage(pkg;
                        run_test = true, 
                        test_args = [""], 
                        folder_list = ["src"], 
-                       file_list = [])
+                       file_list = [],
+                       css = nothing)
     @info "Testing coverage for $pkg" test_args folder_list file_list
     clean_coverage(pkg)
     @test isdir(LocalCoverage.pkgdir(pkg))
@@ -47,8 +50,10 @@ function test_coverage(pkg;
 
     if !isnothing(Sys.which("genhtml"))
         mktempdir() do dir
-            html_coverage(pkg, dir = dir)
+            html_coverage(pkg, dir = dir, css = css)
             @test isfile(joinpath(dir, "index.html"))
+            isnothing(css) ||
+                @test filecmp(joinpath(dir, "gcov.css"), css)
         end
     end
 
@@ -82,6 +87,11 @@ end
                     test_args = ["testset 1", "testset 2"], 
                     folder_list = [joinpath(dirname(@__FILE__), "DummyPackage", "src", "corge")],
                     file_list = [joinpath(dirname(@__FILE__), "DummyPackage", "src", "qux.jl")])
+    end
+
+    @testset "custom CSS" begin
+        @test_throws TypeError test_coverage("DummyPackage", css=1)
+        test_coverage("DummyPackage", css=joinpath(dirname(@__FILE__), "dummy.css"))
     end
 end
 
