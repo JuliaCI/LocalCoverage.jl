@@ -281,8 +281,9 @@ end
 """
 $(SIGNATURES)
 
-Generate, and optionally open, the HTML coverage summary in a browser for `pkg`
-inside `dir`.
+Generate, and optionally open, the HTML coverage summary in a browser
+for `pkg` inside `dir`. The optional keyword argument `css` can be
+used to set the path to a custom CSS file styling the coverage report.
 
 See [`generate_coverage`](@ref).
 """
@@ -324,9 +325,10 @@ function html_coverage(pkg = nothing;
                        dir = tempdir(),
                        test_args = [""],
                        folder_list = ["src"],
-                       file_list = [])
+                       file_list = [],
+                       css = nothing)
     gen_cov() = generate_coverage(pkg; test_args = test_args, folder_list = folder_list, file_list = file_list)
-    html_coverage(gen_cov(); gitroot = gitroot, open = open, dir = dir)
+    html_coverage(gen_cov(); gitroot = gitroot, open = open, dir = dir, css = css)
 end
 
 """
