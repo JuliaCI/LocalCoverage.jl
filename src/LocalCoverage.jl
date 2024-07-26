@@ -287,7 +287,7 @@ used to set the path to a custom CSS file styling the coverage report.
 
 See [`generate_coverage`](@ref).
 """
-function html_coverage(coverage::PackageCoverage; gitroot = ".", open = false, dir = tempdir(), css::Union{Nothing,String}=nothing)
+function html_coverage(coverage::PackageCoverage; gitroot = ".", open = false, dir = tempdir(), css::Union{Nothing,AbstractString}=nothing)
     cd(coverage.package_dir) do
         branch = try
             LibGit2.headname(GitRepo(gitroot))
