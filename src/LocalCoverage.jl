@@ -286,7 +286,7 @@ inside `dir`.
 
 See [`generate_coverage`](@ref).
 """
-function html_coverage(coverage::PackageCoverage; gitroot = ".", open = false, dir = tempdir())
+function html_coverage(coverage::PackageCoverage; gitroot = ".", open = false, dir = tempdir(), css::Union{Nothing,String}=nothing)
     cd(coverage.package_dir) do
         branch = try
             LibGit2.headname(GitRepo(gitroot))
@@ -298,7 +298,13 @@ function html_coverage(coverage::PackageCoverage; gitroot = ".", open = false, d
         tracefile = joinpath(COVDIR, LCOVINFO)
 
         try
-            run(`genhtml -t $(title) -o $(dir) $(tracefile)`)
+            cmd = `genhtml -t $(title) -o $(dir) $(tracefile)`
+            if !isnothing(css)
+                css_file = abspath(css)
+                isfile(css_file) || throw(ArgumentError("Could not find CSS file at $(css_file)"))
+                cmd = `$(cmd) --css-file $(css_file)`
+            end
+            run(cmd)
         catch e
             error(
                 "Failed to run genhtml. Check that lcov is installed (see the README).",
