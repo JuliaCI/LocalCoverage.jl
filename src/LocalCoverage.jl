@@ -281,12 +281,13 @@ end
 """
 $(SIGNATURES)
 
-Generate, and optionally open, the HTML coverage summary in a browser for `pkg`
-inside `dir`.
+Generate, and optionally open, the HTML coverage summary in a browser
+for `pkg` inside `dir`. The optional keyword argument `css` can be
+used to set the path to a custom CSS file styling the coverage report.
 
 See [`generate_coverage`](@ref).
 """
-function html_coverage(coverage::PackageCoverage; gitroot = ".", open = false, dir = tempdir())
+function html_coverage(coverage::PackageCoverage; gitroot = ".", open = false, dir = tempdir(), css::Union{Nothing,AbstractString}=nothing)
     cd(coverage.package_dir) do
         branch = try
             LibGit2.headname(GitRepo(gitroot))
@@ -298,7 +299,13 @@ function html_coverage(coverage::PackageCoverage; gitroot = ".", open = false, d
         tracefile = joinpath(COVDIR, LCOVINFO)
 
         try
-            run(`genhtml -t $(title) -o $(dir) $(tracefile)`)
+            cmd = `genhtml -t $(title) -o $(dir) $(tracefile)`
+            if !isnothing(css)
+                css_file = abspath(css)
+                isfile(css_file) || throw(ArgumentError("Could not find CSS file at $(css_file)"))
+                cmd = `$(cmd) --css-file $(css_file)`
+            end
+            run(cmd)
         catch e
             error(
                 "Failed to run genhtml. Check that lcov is installed (see the README).",
@@ -318,9 +325,10 @@ function html_coverage(pkg = nothing;
                        dir = tempdir(),
                        test_args = [""],
                        folder_list = ["src"],
-                       file_list = [])
+                       file_list = [],
+                       css = nothing)
     gen_cov() = generate_coverage(pkg; test_args = test_args, folder_list = folder_list, file_list = file_list)
-    html_coverage(gen_cov(); gitroot = gitroot, open = open, dir = dir)
+    html_coverage(gen_cov(); gitroot = gitroot, open = open, dir = dir, css = css)
 end
 
 """
