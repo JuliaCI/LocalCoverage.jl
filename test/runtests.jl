@@ -93,6 +93,10 @@ end
         @test_throws TypeError test_coverage("DummyPackage", css=1)
         test_coverage("DummyPackage", css=joinpath(dirname(@__FILE__), "dummy.css"))
     end
+
+    @testset "failing tests" begin
+        test_coverage("DummyPackage"; test_args = ["testset 3"])
+    end
 end
 
 @test LocalCoverage.find_gaps([nothing, 0, 0, 0, 2, 3, 0, nothing, 0, 3, 0, 6, 2]) ==
