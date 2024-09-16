@@ -18,18 +18,39 @@ function test_coverage(pkg;
                        test_args = [""], 
                        folder_list = ["src"], 
                        file_list = [],
-                       css = nothing)
+                       css = nothing,
+                       should_throw = false)
     @info "Testing coverage for $pkg" test_args folder_list file_list
     clean_coverage(pkg)
     @test isdir(LocalCoverage.pkgdir(pkg))
     lcovtrace = joinpath(covdir, "lcov.info")
     @test !isfile(lcovtrace)
 
-    cov = generate_coverage(pkg; 
-                            run_test = run_test, 
-                            test_args = test_args, 
-                            folder_list = folder_list, 
-                            file_list = file_list)
+    if should_throw
+        @test_throws Pkg.Types.PkgError generate_coverage(pkg;
+                                                          run_test=run_test,
+                                                          test_args=test_args,
+                                                          folder_list=folder_list,
+                                                          file_list=file_list)
+    else
+        cov = generate_coverage(pkg; 
+                                run_test = run_test, 
+                                test_args = test_args, 
+                                folder_list = folder_list, 
+                                file_list = file_list)
+
+        buffer = IOBuffer()
+        show(buffer, cov)
+        table = String(take!(buffer))
+        println(table)
+        @test !isnothing(match(table_header, table))
+        @test !isnothing(match(table_line, table))
+        @test !isnothing(match(table_footer, table))
+
+        @info "Printing coverage information for visual debugging"
+        show(stdout, cov)
+        show(IOContext(stdout, :print_gaps => true), cov)
+    end
 
     xmltrace = joinpath(covdir,"lcov.xml")
     write_lcov_to_xml(xmltrace, lcovtrace)
@@ -39,14 +60,6 @@ function test_coverage(pkg;
         @test header == """<?xml version="1.0" encoding="UTF-8"?>"""
         @test startswith(doctype, "<!DOCTYPE coverage")
     end
-
-    buffer = IOBuffer()
-    show(buffer, cov)
-    table = String(take!(buffer))
-    println(table)
-    @test !isnothing(match(table_header, table))
-    @test !isnothing(match(table_line, table))
-    @test !isnothing(match(table_footer, table))
 
     if !isnothing(Sys.which("genhtml"))
         mktempdir() do dir
@@ -59,10 +72,6 @@ function test_coverage(pkg;
 
     @test isfile(lcovtrace)
     rm(covdir, recursive = true)
-
-    @info "Printing coverage information for visual debugging"
-    show(stdout, cov)
-    show(IOContext(stdout, :print_gaps => true), cov)
 end
 
 @testset verbose = true "Testing coverage with" begin
@@ -95,7 +104,7 @@ end
     end
 
     @testset "failing tests" begin
-        test_coverage("DummyPackage"; test_args = ["testset 3"])
+        test_coverage("DummyPackage"; test_args = ["testset 3"], should_throw = true)
     end
 end
 
