@@ -258,7 +258,6 @@ Process coverage files for a package within folder.
 Called by [`generate_coverage`](@ref).
 
 """
-
 function process_coverage(pkg=nothing;
                           folder_list=["src"],
                           file_list=[])::PackageCoverage
