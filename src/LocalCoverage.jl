@@ -313,7 +313,7 @@ function html_coverage(coverage::PackageCoverage; gitroot = ".", open = false, d
                 sprint(Base.showerror, e),
             )
         end
-        @info("generated coverage HTML")
+        @info("generated coverage HTML $(joinpath(dir, "index.html")).")
         open && DefaultApplication.open(joinpath(dir, "index.html"))
     end
     nothing
