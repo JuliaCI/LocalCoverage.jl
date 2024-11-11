@@ -233,13 +233,34 @@ function generate_coverage(pkg = nothing;
                            test_args = [""],
                            folder_list = ["src"],
                            file_list = [])::PackageCoverage
-    if run_test
-        if isnothing(pkg)
-            Pkg.test(; coverage = true, test_args = test_args)
-        else
-            Pkg.test(pkg; coverage = true, test_args = test_args)
+    
+    try
+        if run_test
+            if isnothing(pkg)
+                Pkg.test(; coverage = true, test_args = test_args)
+            else
+                Pkg.test(pkg; coverage = true, test_args = test_args)
+            end
         end
+    catch e
+        coverage = process_coverage(pkg; folder_list, file_list)
+        println(stdout, coverage)
+        rethrow(e)
     end
+    return process_coverage(pkg; folder_list, file_list)
+end
+
+"""
+$(SIGNATURES)
+
+Process coverage files for a package within folder.
+    
+Called by [`generate_coverage`](@ref).
+
+"""
+function process_coverage(pkg=nothing;
+                          folder_list=["src"],
+                          file_list=[])::PackageCoverage
     package_dir = pkgdir(pkg)
     cd(package_dir) do
         # initialize empty vector of coverage data
