@@ -24,7 +24,11 @@ Note that the code in this package assumes a reasonably recent `lcov` version wh
 
 `LocalCoverage` also provides an option to generate a
 [Cobertura](https://cobertura.github.io/cobertura/) XML, which is used by JVM-related test
-suites such as Jenkins.  Using this requires the Python module
+suites such as Jenkins.  This can be done either with:
+- The native Julia implementation via the `write_lcov_to_xml` function,
+- The original implementation using the `generate_xml` function.
+
+The second option (`generate_xml`) requires the Python module
 [`lcov_cobertura`](https://github.com/eriwen/lcov-to-cobertura-xml) (>= v2.0.1).
 With Python installed, you can install this module via `pip install lcov_cobertura`.
 
