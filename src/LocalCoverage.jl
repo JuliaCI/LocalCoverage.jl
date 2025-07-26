@@ -290,7 +290,7 @@ See [`generate_coverage`](@ref).
 function html_coverage(coverage::PackageCoverage; gitroot = ".", open = false, dir = tempdir(), css::Union{Nothing,AbstractString}=nothing)
     cd(coverage.package_dir) do
         branch = try
-            LibGit2.headname(GitRepo(gitroot))
+            LibGit2.headname(LibGit2.GitRepo(gitroot))
         catch
             @warn "git branch could not be detected, pass the `gitroot` kwarg if the git root is not the same as the package directory."
         end
