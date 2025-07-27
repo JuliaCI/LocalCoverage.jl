@@ -6,7 +6,6 @@ using DocStringExtensions: SIGNATURES, FIELDS
 using PrettyTables: pretty_table, Highlighter
 import DefaultApplication
 import LibGit2
-using UnPack: @unpack
 import Pkg
 import Dates
 using EzXML
@@ -88,7 +87,7 @@ format_gap(gap) = length(gap) == 1 ? "$(first(gap))" : "$(first(gap))–$(last(g
 format_gaps(summary::FileCoverageSummary) = join(map(format_gap, summary.coverage_gaps), ", ")
 
 function format_line(summary::Union{PackageCoverage,FileCoverageSummary})
-    @unpack lines_hit, lines_tracked, coverage_percentage = summary
+    (; lines_hit, lines_tracked, coverage_percentage) = summary
     is_pkg = summary isa PackageCoverage
     (name = is_pkg ? "TOTAL" : summary.filename,
      total = lines_tracked,
@@ -99,12 +98,12 @@ function format_line(summary::Union{PackageCoverage,FileCoverageSummary})
 end
 
 function Base.show(io::IO, summary::PackageCoverage)
-    @unpack files, package_dir = summary
+    (; files, package_dir) = summary
     row_data = map(format_line, files)
     push!(row_data, format_line(summary))
     row_coverage = map(x -> x.coverage_percentage, row_data)
     rows = map(row_data) do row
-        @unpack name, total, hit, missed, coverage_percentage, gaps = row
+        (; name, total, hit, missed, coverage_percentage, gaps) = row
         percentage = isnan(coverage_percentage) ? "-" : "$(round(Int, coverage_percentage))%"
         (; name, total, hit, missed, percentage, gaps)
     end
@@ -181,7 +180,7 @@ Evaluate the coverage metrics for the given pkg.
 """
 function eval_coverage_metrics(coverage, package_dir)::PackageCoverage
     files = map(coverage) do file
-        @unpack coverage = file
+        (; coverage) = file
         lines_tracked = count(!isnothing, coverage)
         coverage_gaps = find_gaps(coverage)
         lines_hit = lines_tracked - sum(length, coverage_gaps; init = 0)
