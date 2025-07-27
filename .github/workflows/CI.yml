@@ -24,6 +24,7 @@ jobs:
         arch:
           - x64
     steps:
+      - run: sudo apt install lcov
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
         with:

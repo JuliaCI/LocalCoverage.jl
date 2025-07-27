@@ -1,6 +1,10 @@
 using LocalCoverage, Test
 using FileCmp
 
+if isnothing(Sys.which("genhtml"))
+    error("Install the genhtml binary for running the unit tests. See the README.md.")
+end
+
 import Pkg
 
 Pkg.activate("./DummyPackage/")
@@ -13,10 +17,10 @@ table_footer = r"TOTAL\s+.\s+\d+\s+.\s+\d+\s+.\s+\d+\s+.\s+\d+%"
 
 covdir = normpath(joinpath(@__DIR__, "DummyPackage", "coverage"))
 
-function test_coverage(pkg; 
-                       run_test = true, 
-                       test_args = [""], 
-                       folder_list = ["src"], 
+function test_coverage(pkg;
+                       run_test = true,
+                       test_args = [""],
+                       folder_list = ["src"],
                        file_list = [],
                        css = nothing,
                        should_throw = false)
@@ -33,10 +37,10 @@ function test_coverage(pkg;
                                                           folder_list=folder_list,
                                                           file_list=file_list)
     else
-        cov = generate_coverage(pkg; 
-                                run_test = run_test, 
-                                test_args = test_args, 
-                                folder_list = folder_list, 
+        cov = generate_coverage(pkg;
+                                run_test = run_test,
+                                test_args = test_args,
+                                folder_list = folder_list,
                                 file_list = file_list)
 
         buffer = IOBuffer()
@@ -80,20 +84,20 @@ end
     end
 
     @testset "test_args and file_list" begin
-        test_coverage("DummyPackage"; 
-                    test_args = ["testset 2"], 
+        test_coverage("DummyPackage";
+                    test_args = ["testset 2"],
                     file_list = [joinpath(dirname(@__FILE__), "DummyPackage", "src", "qux.jl")])
     end
 
     @testset "test_args and folder_list" begin
-        test_coverage("DummyPackage"; 
-                    test_args = ["testset 1"], 
+        test_coverage("DummyPackage";
+                    test_args = ["testset 1"],
                     folder_list = [joinpath(dirname(@__FILE__), "DummyPackage", "src", "corge")])
     end
 
     @testset "test_args and file_list and folder_list" begin
-        test_coverage("DummyPackage"; 
-                    test_args = ["testset 1", "testset 2"], 
+        test_coverage("DummyPackage";
+                    test_args = ["testset 1", "testset 2"],
                     folder_list = [joinpath(dirname(@__FILE__), "DummyPackage", "src", "corge")],
                     file_list = [joinpath(dirname(@__FILE__), "DummyPackage", "src", "qux.jl")])
     end
