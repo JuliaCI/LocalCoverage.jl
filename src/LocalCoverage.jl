@@ -218,6 +218,10 @@ An lcov file is also produced in `Pkg.dir(pkg, \"$(COVDIR)\", \"$(LCOVINFO)\")`.
 
 See [`report_coverage_and_exit`](@ref), [`clean_coverage`](@ref).
 
+# Error handling
+
+If tests error, the coverage summary is still printed, then the error is rethrown.
+
 # Printing
 
 Printing of the result can be controlled via `IOContext`. See the keyword arguments of
@@ -233,7 +237,7 @@ function generate_coverage(pkg = nothing;
                            test_args = [""],
                            folder_list = ["src"],
                            file_list = [])::PackageCoverage
-    
+
     try
         if run_test
             if isnothing(pkg)
@@ -254,7 +258,7 @@ end
 $(SIGNATURES)
 
 Process coverage files for a package within folder.
-    
+
 Called by [`generate_coverage`](@ref).
 
 """
