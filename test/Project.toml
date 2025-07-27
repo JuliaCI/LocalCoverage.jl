@@ -1,0 +1,8 @@
+[deps]
+FileCmp = "343a5541-a696-4ae7-8102-bc61c09e1896"
+LocalCoverage = "5f6e1e16-694c-5876-87ef-16b5274f298e"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[sources]
+LocalCoverage = {path = ".."}

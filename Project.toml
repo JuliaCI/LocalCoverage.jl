@@ -22,16 +22,8 @@ Dates = "1.10"
 DefaultApplication = "1"
 DocStringExtensions = "0.8, 0.9"
 EzXML = "1"
-FileCmp = "1"
 LibGit2 = "1.10"
 OrderedCollections = "1"
 Pkg = "1.10"
 PrettyTables = "0.12, 1.0, 2"
 julia = "1.10"
-
-[extras]
-FileCmp = "343a5541-a696-4ae7-8102-bc61c09e1896"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test", "FileCmp"]
