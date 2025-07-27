@@ -114,3 +114,7 @@ end
 
 @test LocalCoverage.find_gaps([nothing, 0, 0, 0, 2, 3, 0, nothing, 0, 3, 0, 6, 2]) ==
     [2:4, 7:7, 9:9, 11:11]
+
+# automated QA
+import Aqua
+Aqua.test_all(LocalCoverage)
