@@ -11,8 +11,8 @@ import Dates
 using EzXML
 using OrderedCollections
 
-export generate_coverage, clean_coverage, report_coverage_and_exit, html_coverage,
-    generate_xml, write_lcov_to_xml
+export generate_coverage, process_coverage, clean_coverage, report_coverage_and_exit,
+    html_coverage, generate_xml, write_lcov_to_xml
 
 ####
 #### helper functions and constants
@@ -256,12 +256,17 @@ end
 """
 $(SIGNATURES)
 
-Process coverage files for a package within folder.
+Process coverage files.
 
-Called by [`generate_coverage`](@ref).
+`pkg` is a string specifying the package, `nothing` (the default) will use the package
+that corresponds to the active project.
 
+The keyword arguments `folder_list` and `file_list` should be vectors of strings,
+specifying relative paths (eg `"src"`) within the package.
+
+Note: this function is called by [`generate_coverage`](@ref) automatically.
 """
-function process_coverage(pkg=nothing;
+function process_coverage(pkg::Union{Nothing,AbstractString}=nothing;
                           folder_list=["src"],
                           file_list=[])::PackageCoverage
     package_dir = pkgdir(pkg)
