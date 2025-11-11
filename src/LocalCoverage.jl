@@ -119,7 +119,7 @@ function Base.show(io::IO, summary::PackageCoverage)
     else
         rows = map(row -> Base.structdiff(row, NamedTuple{(:gaps,)}), rows)
     end
-    # PrettyTables 3.0 changed Highlighter to TextHighlighter, which up to currently published version (v3.10) does not provide the kwargs constructor (despite having it documented). We create here a patch to handle both cases
+    # PrettyTables 3.0 changed Highlighter to TextHighlighter, so we have to select the correct constructor based on the PrettyTables version
     Highlighter = @static if pkgversion(PrettyTables) < v"3.0.0"
         PrettyTables.Highlighter
     else
