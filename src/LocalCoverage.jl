@@ -3,7 +3,7 @@ module LocalCoverage
 import CoverageTools
 using Coverage: process_folder, process_file
 using DocStringExtensions: SIGNATURES, FIELDS
-using PrettyTables: pretty_table, Highlighter
+using PrettyTables: PrettyTables, pretty_table
 import DefaultApplication
 import LibGit2
 import Pkg
@@ -119,6 +119,13 @@ function Base.show(io::IO, summary::PackageCoverage)
     else
         rows = map(row -> Base.structdiff(row, NamedTuple{(:gaps,)}), rows)
     end
+    # PrettyTables 3.0 changed Highlighter to TextHighlighter, so we have to select the correct constructor based on the PrettyTables version
+    Highlighter = @static if pkgversion(PrettyTables) < v"3.0.0"
+        PrettyTables.Highlighter
+    else
+        PrettyTables.TextHighlighter
+    end
+
     highlighters = (
         Highlighter(
             (data, i, j) -> j == percentage_column && row_coverage[i] <= 50,
@@ -131,19 +138,40 @@ function Base.show(io::IO, summary::PackageCoverage)
                     foreground = :green),
     )
 
-    pretty_table(
-        io,
-        rows;
-        title = "Coverage of $(package_dir)",
-        header,
-        alignment,
-        crop = :none,
-        linebreaks = true,
-        columns_width,
-        autowrap = true,
-        highlighters,
-        body_hlines = [length(rows) - 1],
-    )
+    # Kwargs of `pretty_table` itself also changed in PrettyTables 3.0, so we have to branch here as well
+    @static if pkgversion(PrettyTables) < v"3.0.0"
+        pretty_table(
+            io,
+            rows;
+            title = "Coverage of $(package_dir)",
+            header,
+            alignment,
+            crop = :none,
+            linebreaks = true,
+            columns_width,
+            autowrap = true,
+            highlighters,
+            body_hlines = [length(rows) - 1],
+        )
+    else
+        pretty_table(
+            io,
+            rows;
+            title = "Coverage of $(package_dir)",
+            column_labels = [header],
+            alignment,
+            # The crop kwarg is not present anymore, split into the next two ones
+            fit_table_in_display_horizontally = false,
+            fit_table_in_display_vertically = false,
+            line_breaks = true,
+            fixed_data_column_widths = columns_width,
+            auto_wrap = true,
+            highlighters = collect(highlighters), # v3 expects a vector instead of a Tuple
+            table_format = PrettyTables.TextTableFormat(;
+                horizontal_lines_at_data_rows = [length(rows) - 1],
+            ),
+        )
+    end
 end
 
 """
