@@ -110,7 +110,7 @@ function Base.show(io::IO, summary::PackageCoverage)
     header = ["Filename", "Lines", "Hit", "Miss", "%"]
     percentage_column = length(header)
     alignment = [:l, :r, :r, :r, :r]
-    columns_width = fill(-1, 5) # We need strictly negative number to autosize in PrettyTables 3.0, but this also works in v2
+    columns_width = fill(0, 5)
     if get(io, :print_gaps, false)
         push!(header, "Gaps")
         push!(alignment, :l)
@@ -120,10 +120,10 @@ function Base.show(io::IO, summary::PackageCoverage)
         rows = map(row -> Base.structdiff(row, NamedTuple{(:gaps,)}), rows)
     end
     # PrettyTables 3.0 changed Highlighter to TextHighlighter, which up to currently published version (v3.10) does not provide the kwargs constructor (despite having it documented). We create here a patch to handle both cases
-    Highlighter(f; kwargs...) = @static if pkgversion(PrettyTables) < v"3.0.0"
-        PrettyTables.Highlighter(f; kwargs...)
+    Highlighter = @static if pkgversion(PrettyTables) < v"3.0.0"
+        PrettyTables.Highlighter
     else
-        PrettyTables.TextHighlighter(f, PrettyTables.Crayon(;kwargs...))
+        PrettyTables.TextHighlighter
     end
 
     highlighters = (
