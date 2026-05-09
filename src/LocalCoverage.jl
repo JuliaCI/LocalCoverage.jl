@@ -12,7 +12,7 @@ using EzXML
 using OrderedCollections
 
 export generate_coverage, process_coverage, clean_coverage, report_coverage_and_exit,
-    html_coverage, generate_xml, write_lcov_to_xml
+    html_coverage, generate_xml, write_lcov_to_xml, generate_json_summary
 
 ####
 #### helper functions and constants
@@ -448,6 +448,92 @@ function generate_xml(coverage::PackageCoverage, filename="cov.xml")
             dir = joinpath(coverage.package_dir, COVDIR)))
     @info("generated cobertura XML $(joinpath(coverage.package_dir, COVDIR, filename)).")
 end
+
+"""
+$(SIGNATURES)
+
+Generate a coverage JSON summary in the package `coverage` directory, mimicking the structure
+of the Jest `json-summary` reporter.
+
+If `test_args` are provided, the top level `"total"` key is replaced with the name of the test set.
+"""
+function generate_json_summary(coverage::PackageCoverage, filename="coverage-summary.json"; test_args=[""])
+    # Determine the top-level key name
+    top_key = (isempty(test_args) || (length(test_args) == 1 && test_args[1] == "")) ? "total" : join(test_args, " ")
+    
+    # Let's build the JSON string
+    io = IOBuffer()
+    println(io, "{")
+    
+    # Helper to print a summary block
+    function print_block(io, total_lines, covered_lines, indent)
+        pct = total_lines == 0 ? 100.0 : round(covered_lines / total_lines * 100, digits=2)
+        # Handle trailing .0 representing integers nicely or just string
+        pct_str = string(pct)
+        
+        m_lines = """{"total": $total_lines, "covered": $covered_lines, "skipped": 0, "pct": $pct_str}"""
+        m_statements = m_lines
+        m_functions = m_lines
+        m_branches = m_lines
+        
+        indent_str = " " ^ indent
+        println(io, indent_str, "\"lines\": ", m_lines, ",")
+        println(io, indent_str, "\"statements\": ", m_statements, ",")
+        println(io, indent_str, "\"functions\": ", m_functions, ",")
+        println(io, indent_str, "\"branches\": ", m_branches)
+    end
+    
+    # Print the top level block (total or test_args)
+    println(io, "  \"", top_key, "\": {")
+    print_block(io, coverage.lines_tracked, coverage.lines_hit, 4)
+    
+    # Check if there are files
+    if !isempty(coverage.files)
+        println(io, "  },") # Close the top key
+        
+        for (i, f) in enumerate(coverage.files)
+            # Normalize path slashes to forward slashes for cross-platform JSON summary
+            f_name = replace(f.filename, '\\' => '/')
+            println(io, "  \"", f_name, "\": {")
+            print_block(io, f.lines_tracked, f.lines_hit, 4)
+            if i == length(coverage.files)
+                println(io, "  }")
+            else
+                println(io, "  },")
+            end
+        end
+    else
+        println(io, "  }")
+    end
+    
+    println(io, "}")
+    
+    json_content = String(take!(io))
+    
+    # Write to the file in package coverage dir
+    out_dir = joinpath(coverage.package_dir, COVDIR)
+    mkpath(out_dir)
+    out_path = joinpath(out_dir, filename)
+    write(out_path, json_content)
+    @info("generated JSON summary $(out_path).")
+    return out_path
+end
+
+"""
+$(SIGNATURES)
+
+Generate a coverage JSON summary for package `pkg`.
+"""
+function generate_json_summary(pkg = nothing;
+                               filename = "coverage-summary.json",
+                               test_args = [""],
+                               folder_list = ["src"],
+                               file_list = [],
+                               kwargs...)
+    cov = generate_coverage(pkg; test_args = test_args, folder_list = folder_list, file_list = file_list, kwargs...)
+    generate_json_summary(cov, filename; test_args = test_args)
+end
+
 
 """
 $(SIGNATURES)

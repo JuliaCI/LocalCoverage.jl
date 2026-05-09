@@ -54,6 +54,28 @@ function test_coverage(pkg;
         @info "Printing coverage information for visual debugging"
         show(stdout, cov)
         show(IOContext(stdout, :print_gaps => true), cov)
+
+        # Testing JSON summary generation
+        jsonsummary = joinpath(covdir, "coverage-summary.json")
+        @test !isfile(jsonsummary)
+        generate_json_summary(cov, "coverage-summary.json"; test_args = test_args)
+        @test isfile(jsonsummary)
+        json_content = read(jsonsummary, String)
+        @test occursin(test_args == [""] ? "\"total\":" : "\"" * join(test_args, " ") * "\":", json_content)
+        @test occursin("\"lines\":", json_content)
+        @test occursin("\"statements\":", json_content)
+        @test occursin("\"functions\":", json_content)
+        @test occursin("\"branches\":", json_content)
+        @test occursin("\"total\":", json_content)
+        @test occursin("\"pct\":", json_content)
+        
+        # Test direct package-level JSON summary dispatch
+        direct_json = joinpath(covdir, "coverage-summary-direct.json")
+        @test !isfile(direct_json)
+        generate_json_summary(pkg, filename="coverage-summary-direct.json", run_test=false, test_args=test_args)
+        @test isfile(direct_json)
+        direct_content = read(direct_json, String)
+        @test occursin(test_args == [""] ? "\"total\":" : "\"" * join(test_args, " ") * "\":", direct_content)
     end
 
     xmltrace = joinpath(covdir,"lcov.xml")
