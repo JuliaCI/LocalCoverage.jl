@@ -13,7 +13,8 @@ using OrderedCollections
 import JSON
 
 export generate_coverage, process_coverage, clean_coverage, report_coverage_and_exit,
-    html_coverage, generate_xml, write_lcov_to_xml, generate_json_summary
+    html_coverage, generate_xml, write_lcov_to_xml, generate_json_summary,
+    compare_coverage_json_summaries
 
 ####
 #### helper functions and constants
@@ -266,7 +267,9 @@ function generate_coverage(pkg = nothing;
                            folder_list = ["src"],
                            file_list = [],
                            json_summary = false,
-                           json_filename = "coverage-summary.json")::PackageCoverage
+                           json_filename = "coverage-summary.json",
+                           compare_to = nothing,
+                           fail_on_decrease = false)::PackageCoverage
 
     try
         if run_test
@@ -282,8 +285,14 @@ function generate_coverage(pkg = nothing;
         rethrow(e)
     end
     coverage = process_coverage(pkg; folder_list, file_list)
-    if json_summary
-        generate_json_summary(coverage, json_filename; test_args = test_args)
+    if json_summary || !isnothing(compare_to)
+        out_path = generate_json_summary(coverage, json_filename; test_args = test_args)
+        if !isnothing(compare_to)
+            passed = compare_coverage_json_summaries(compare_to, out_path, stdout)
+            if !passed && fail_on_decrease
+                error("Coverage comparison failed: overall coverage decreased from previous run.")
+            end
+        end
     end
     return coverage
 end
@@ -795,6 +804,110 @@ Get the percentage of lines covered in the total, with formatting
 _percent(lines_total::Integer, lines_covered::Integer) = lines_total == 0 ? "0.0" : string(lines_covered / lines_total)
 
 
+"""
+$(SIGNATURES)
+
+Compare two coverage JSON summaries (either as file paths or JSON strings).
+Prints a table of coverage delta information to `io` (defaults to `stdout`).
+Returns `true` if coverage did not decrease, and `false` if it decreased.
+"""
+function compare_coverage_json_summaries(old::AbstractString, new::AbstractString, io::IO = stdout)
+    is_json(s) = begin
+        t = strip(s)
+        (startswith(t, "{") && endswith(t, "}")) || (startswith(t, "[") && endswith(t, "]"))
+    end
+    old_data = if is_json(old)
+        JSON.parse(old; dicttype=OrderedDict{String,Any})
+    elseif isfile(old)
+        JSON.parsefile(old; dicttype=OrderedDict{String,Any})
+    else
+        JSON.parse(old; dicttype=OrderedDict{String,Any})
+    end
+    new_data = if is_json(new)
+        JSON.parse(new; dicttype=OrderedDict{String,Any})
+    elseif isfile(new)
+        JSON.parsefile(new; dicttype=OrderedDict{String,Any})
+    else
+        JSON.parse(new; dicttype=OrderedDict{String,Any})
+    end
+    return compare_coverage_json_summaries(old_data, new_data, io)
+end
+
+function compare_coverage_json_summaries(old_data::AbstractDict, new_data::AbstractDict, io::IO = stdout)
+    # Helper to find overall summary key (not ending with .jl)
+    function find_overall_key(dict)
+        for k in keys(dict)
+            if !endswith(k, ".jl")
+                return k
+            end
+        end
+        return "total" # fallback
+    end
+    
+    old_key = find_overall_key(old_data)
+    new_key = find_overall_key(new_data)
+    
+    # Extract overall coverage percentages
+    old_pct = haskey(old_data, old_key) ? old_data[old_key]["lines"]["pct"] : nothing
+    new_pct = haskey(new_data, new_key) ? new_data[new_key]["lines"]["pct"] : nothing
+    
+    # Get all keys to compare
+    keys_all = collect(keys(new_data))
+    for k in keys(old_data)
+        if !(k in keys_all)
+            push!(keys_all, k)
+        end
+    end
+    
+    # Build rows for the PrettyTable as a 2D Matrix
+    rows = Matrix{Any}(undef, length(keys_all), 4)
+    for (i, k) in enumerate(keys_all)
+        old_val = haskey(old_data, k) ? old_data[k]["lines"]["pct"] : "-"
+        new_val = haskey(new_data, k) ? new_data[k]["lines"]["pct"] : "-"
+        
+        delta_str = "-"
+        if old_val isa Number && new_val isa Number
+            delta = round(new_val - old_val, digits=2)
+            delta_str = delta >= 0 ? "+$delta%" : "$delta%"
+        end
+        
+        old_pct_str = old_val isa Number ? "$old_val%" : old_val
+        new_pct_str = new_val isa Number ? "$new_val%" : new_val
+        
+        rows[i, 1] = k
+        rows[i, 2] = old_pct_str
+        rows[i, 3] = new_pct_str
+        rows[i, 4] = delta_str
+    end
+    
+    # Print the table using version-appropriate kwargs
+    @static if pkgversion(PrettyTables) < v"3.0.0"
+        pretty_table(
+            io,
+            rows;
+            title = "Coverage Comparison",
+            header = ["File/Section", "Old Coverage", "New Coverage", "Delta"],
+            alignment = [:l, :r, :r, :r]
+        )
+    else
+        pretty_table(
+            io,
+            rows;
+            title = "Coverage Comparison",
+            column_labels = ["File/Section", "Old Coverage", "New Coverage", "Delta"],
+            alignment = [:l, :r, :r, :r]
+        )
+    end
+    
+    decreased = false
+    if !isnothing(old_pct) && !isnothing(new_pct)
+        if new_pct < old_pct
+            decreased = true
+        end
+    end
+    
+    return !decreased
+end
 
 
 end # module

@@ -141,6 +141,96 @@ end
     end
 end
 
+@testset "compare_coverage_json_summaries" begin
+    # Mocking old and new JSON string summaries
+    old_json = """
+    {
+      "total": {
+        "lines": {"total": 10, "covered": 5, "skipped": 0, "pct": 50.0},
+        "statements": {"total": 10, "covered": 5, "skipped": 0, "pct": 50.0},
+        "functions": {"total": 10, "covered": 5, "skipped": 0, "pct": 50.0},
+        "branches": {"total": 10, "covered": 5, "skipped": 0, "pct": 50.0}
+      },
+      "src/bar.jl": {
+        "lines": {"total": 5, "covered": 2, "skipped": 0, "pct": 40.0},
+        "statements": {"total": 5, "covered": 2, "skipped": 0, "pct": 40.0},
+        "functions": {"total": 5, "covered": 2, "skipped": 0, "pct": 40.0},
+        "branches": {"total": 5, "covered": 2, "skipped": 0, "pct": 40.0}
+      }
+    }
+    """
+    
+    # Increased coverage scenario
+    inc_json = """
+    {
+      "total": {
+        "lines": {"total": 10, "covered": 8, "skipped": 0, "pct": 80.0},
+        "statements": {"total": 10, "covered": 8, "skipped": 0, "pct": 80.0},
+        "functions": {"total": 10, "covered": 8, "skipped": 0, "pct": 80.0},
+        "branches": {"total": 10, "covered": 8, "skipped": 0, "pct": 80.0}
+      },
+      "src/bar.jl": {
+        "lines": {"total": 5, "covered": 4, "skipped": 0, "pct": 80.0},
+        "statements": {"total": 5, "covered": 4, "skipped": 0, "pct": 80.0},
+        "functions": {"total": 5, "covered": 4, "skipped": 0, "pct": 80.0},
+        "branches": {"total": 5, "covered": 4, "skipped": 0, "pct": 80.0}
+      }
+    }
+    """
+    
+    # Decreased coverage scenario
+    dec_json = """
+    {
+      "total": {
+        "lines": {"total": 10, "covered": 2, "skipped": 0, "pct": 20.0},
+        "statements": {"total": 10, "covered": 2, "skipped": 0, "pct": 20.0},
+        "functions": {"total": 10, "covered": 2, "skipped": 0, "pct": 20.0},
+        "branches": {"total": 10, "covered": 2, "skipped": 0, "pct": 20.0}
+      },
+      "src/bar.jl": {
+        "lines": {"total": 5, "covered": 1, "skipped": 0, "pct": 20.0},
+        "statements": {"total": 5, "covered": 1, "skipped": 0, "pct": 20.0},
+        "functions": {"total": 5, "covered": 1, "skipped": 0, "pct": 20.0},
+        "branches": {"total": 5, "covered": 1, "skipped": 0, "pct": 20.0}
+      }
+    }
+    """
+    
+    # Test JSON string parsing and direct comparison
+    @test compare_coverage_json_summaries(old_json, old_json) == true # unchanged is true (not decreased)
+    @test compare_coverage_json_summaries(old_json, inc_json) == true # increased is true
+    @test compare_coverage_json_summaries(old_json, dec_json) == false # decreased is false
+    
+    # Test file-based comparison
+    mktempdir() do tmp_dir
+        old_file = joinpath(tmp_dir, "old.json")
+        inc_file = joinpath(tmp_dir, "inc.json")
+        dec_file = joinpath(tmp_dir, "dec.json")
+        
+        write(old_file, old_json)
+        write(inc_file, inc_json)
+        write(dec_file, dec_json)
+        
+        @test compare_coverage_json_summaries(old_file, old_file) == true
+        @test compare_coverage_json_summaries(old_file, inc_file) == true
+        @test compare_coverage_json_summaries(old_file, dec_file) == false
+        
+        # Test integrated generate_coverage comparison
+        cov_dir = joinpath(dirname(@__FILE__), "DummyPackage", "coverage")
+        rm(cov_dir; force=true, recursive=true)
+        
+        # Scenario: old file coverage is lower (20.0%) than generated coverage -> should pass
+        cov = generate_coverage("DummyPackage"; run_test=true, compare_to=dec_file, fail_on_decrease=false)
+        @test isfile(joinpath(cov_dir, "coverage-summary.json"))
+        
+        # Scenario: old file coverage is higher (80.0%) than generated coverage (~28.57%) -> should fail
+        @test_throws ErrorException generate_coverage("DummyPackage"; run_test=true, compare_to=inc_file, fail_on_decrease=true)
+        
+        # Cleanup
+        rm(cov_dir; force=true, recursive=true)
+    end
+end
+
 @test LocalCoverage.find_gaps([nothing, 0, 0, 0, 2, 3, 0, nothing, 0, 3, 0, 6, 2]) ==
     [2:4, 7:7, 9:9, 11:11]
 
