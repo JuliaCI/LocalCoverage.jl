@@ -52,15 +52,17 @@ To generate, and optionally open, the coverage report HTML do
 html_coverage(coverage::PackageCoverage; open = false, dir = tempdir()) # defaults shown
 ```
 
-To generate a Jest-compatible `coverage-summary.json` report do
+To generate a Jest-compatible `coverage-summary.json` report, pass the `json_summary = true` option to `generate_coverage()` (optionally specifying the filename via `json_filename`):
+```julia
+generate_coverage(pkg = nothing; json_summary = true, json_filename = "coverage-summary.json") # defaults shown
+```
+If `test_args` are provided, the top level `"total"` key is replaced with the name of the test set.
+
+To generate a Jest-compatible `coverage-summary.json` report from existing `PackageCoverage` data do
 ```julia
 generate_json_summary(coverage::PackageCoverage, filename = "coverage-summary.json"; test_args = [""]) # defaults shown
 ```
-Or generate coverage and the JSON summary in a single call:
-```julia
-generate_json_summary(pkg = nothing; filename = "coverage-summary.json", test_args = [""]) # defaults shown
-```
-If `test_args` are provided, the top level `"total"` key is replaced with the name of the test set.
+
 
 
 A utility method is also provided to easily print coverage statistics and exit with a status reflecting if some given target coverage was met. It can be used from a shell by doing

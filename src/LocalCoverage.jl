@@ -264,7 +264,9 @@ function generate_coverage(pkg = nothing;
                            run_test = true,
                            test_args = [""],
                            folder_list = ["src"],
-                           file_list = [])::PackageCoverage
+                           file_list = [],
+                           json_summary = false,
+                           json_filename = "coverage-summary.json")::PackageCoverage
 
     try
         if run_test
@@ -279,7 +281,11 @@ function generate_coverage(pkg = nothing;
         println(stdout, coverage)
         rethrow(e)
     end
-    return process_coverage(pkg; folder_list, file_list)
+    coverage = process_coverage(pkg; folder_list, file_list)
+    if json_summary
+        generate_json_summary(coverage, json_filename; test_args = test_args)
+    end
+    return coverage
 end
 
 """
@@ -502,20 +508,6 @@ function generate_json_summary(coverage::PackageCoverage, filename="coverage-sum
     return out_path
 end
 
-"""
-$(SIGNATURES)
-
-Generate a coverage JSON summary for package `pkg`.
-"""
-function generate_json_summary(pkg = nothing;
-                               filename = "coverage-summary.json",
-                               test_args = [""],
-                               folder_list = ["src"],
-                               file_list = [],
-                               kwargs...)
-    cov = generate_coverage(pkg; test_args = test_args, folder_list = folder_list, file_list = file_list, kwargs...)
-    generate_json_summary(cov, filename; test_args = test_args)
-end
 
 
 """

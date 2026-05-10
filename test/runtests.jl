@@ -55,7 +55,7 @@ function test_coverage(pkg;
         show(stdout, cov)
         show(IOContext(stdout, :print_gaps => true), cov)
 
-        # Testing JSON summary generation
+        # Testing JSON summary generation (low-level)
         jsonsummary = joinpath(covdir, "coverage-summary.json")
         @test !isfile(jsonsummary)
         generate_json_summary(cov, "coverage-summary.json"; test_args = test_args)
@@ -68,11 +68,18 @@ function test_coverage(pkg;
         @test occursin("\"branches\":", json_content)
         @test occursin("\"total\":", json_content)
         @test occursin("\"pct\":", json_content)
+        rm(jsonsummary)
         
-        # Test direct package-level JSON summary dispatch
+        # Test generate_coverage with json_summary=true
         direct_json = joinpath(covdir, "coverage-summary-direct.json")
         @test !isfile(direct_json)
-        generate_json_summary(pkg, filename="coverage-summary-direct.json", run_test=false, test_args=test_args)
+        generate_coverage(pkg;
+                          run_test = false,
+                          test_args = test_args,
+                          folder_list = folder_list,
+                          file_list = file_list,
+                          json_summary = true,
+                          json_filename = "coverage-summary-direct.json")
         @test isfile(direct_json)
         direct_content = read(direct_json, String)
         @test occursin(test_args == [""] ? "\"total\":" : "\"" * join(test_args, " ") * "\":", direct_content)
