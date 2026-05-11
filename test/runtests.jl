@@ -240,6 +240,81 @@ end
 @test LocalCoverage.find_gaps([nothing, 0, 0, 0, 2, 3, 0, nothing, 0, 3, 0, 6, 2]) ==
     [2:4, 7:7, 9:9, 11:11]
 
+@testset "report_coverage_and_exit" begin
+    pkg_root = dirname(@__DIR__)
+    dummy_pkg_dir = escape_string(joinpath(@__DIR__, "DummyPackage"))
+    
+    # 1. Test report_coverage_and_exit(pkg; target_coverage)
+    # 1a. Target met (10% target coverage on DummyPackage should meet it and exit 0)
+    cmd_met = `$(Base.julia_cmd()) --project=$(pkg_root) -e "using LocalCoverage; using Pkg; Pkg.activate(\"$(dummy_pkg_dir)\"); report_coverage_and_exit(\"DummyPackage\"; target_coverage=10)"`
+    p_met = open(cmd_met, "r")
+    out_met = read(p_met, String)
+    wait(p_met)
+    close(p_met)
+    @test p_met.exitcode == 0
+    @test occursin("Target coverage was met", out_met)
+    @test occursin("10%", out_met)
+    @test occursin("TOTAL", out_met)  # Summary was printed
+    
+    # 1b. Target wasn't met (100% target coverage on DummyPackage should fail it and exit 1)
+    cmd_unmet = `$(Base.julia_cmd()) --project=$(pkg_root) -e "using LocalCoverage; using Pkg; Pkg.activate(\"$(dummy_pkg_dir)\"); report_coverage_and_exit(\"DummyPackage\"; target_coverage=100)"`
+    p_unmet = open(cmd_unmet, "r")
+    out_unmet = read(p_unmet, String)
+    wait(p_unmet)
+    close(p_unmet)
+    @test p_unmet.exitcode == 1
+    @test occursin("Target coverage wasn't met", out_unmet)
+    @test occursin("100%", out_unmet)
+    @test occursin("TOTAL", out_unmet)  # Summary was printed
+    
+    # 1c. Target met but with print_summary = false (summary should not be printed)
+    cmd_no_summary = `$(Base.julia_cmd()) --project=$(pkg_root) -e "using LocalCoverage; using Pkg; Pkg.activate(\"$(dummy_pkg_dir)\"); report_coverage_and_exit(\"DummyPackage\"; target_coverage=10, print_summary=false)"`
+    p_no_summary = open(cmd_no_summary, "r")
+    out_no_summary = read(p_no_summary, String)
+    wait(p_no_summary)
+    close(p_no_summary)
+    @test p_no_summary.exitcode == 0
+    @test occursin("Target coverage was met", out_no_summary)
+    @test occursin("10%", out_no_summary)
+    @test !occursin("TOTAL", out_no_summary)  # Summary was NOT printed
+    
+    # 1d. Target met with print_gaps = true
+    cmd_gaps = `$(Base.julia_cmd()) --project=$(pkg_root) -e "using LocalCoverage; using Pkg; Pkg.activate(\"$(dummy_pkg_dir)\"); report_coverage_and_exit(\"DummyPackage\"; target_coverage=10, print_gaps=true)"`
+    p_gaps = open(cmd_gaps, "r")
+    out_gaps = read(p_gaps, String)
+    wait(p_gaps)
+    close(p_gaps)
+    @test p_gaps.exitcode == 0
+    @test occursin("Target coverage was met", out_gaps)
+    @test occursin("10%", out_gaps)
+    @test occursin("TOTAL", out_gaps)
+    
+    # 2. Test report_coverage_and_exit(coverage::PackageCoverage; target_coverage)
+    # 2a. Target met (exit 0)
+    cmd_cov_met = `$(Base.julia_cmd()) --project=$(pkg_root) -e "using LocalCoverage; using Pkg; Pkg.activate(\"$(dummy_pkg_dir)\"); cov = generate_coverage(\"DummyPackage\"); report_coverage_and_exit(cov; target_coverage=10, print_summary=false)"`
+    p_cov_met = open(cmd_cov_met, "r")
+    out_cov_met = read(p_cov_met, String)
+    wait(p_cov_met)
+    close(p_cov_met)
+    @test p_cov_met.exitcode == 0
+    @test occursin("Target coverage was met", out_cov_met)
+    @test occursin("10%", out_cov_met)
+    
+    # 2b. Target wasn't met (exit 1)
+    cmd_cov_unmet = `$(Base.julia_cmd()) --project=$(pkg_root) -e "using LocalCoverage; using Pkg; Pkg.activate(\"$(dummy_pkg_dir)\"); cov = generate_coverage(\"DummyPackage\"); report_coverage_and_exit(cov; target_coverage=100, print_summary=false)"`
+    p_cov_unmet = open(cmd_cov_unmet, "r")
+    out_cov_unmet = read(p_cov_unmet, String)
+    wait(p_cov_unmet)
+    close(p_cov_unmet)
+    @test p_cov_unmet.exitcode == 1
+    @test occursin("Target coverage wasn't met", out_cov_unmet)
+    @test occursin("100%", out_cov_unmet)
+
+    # Cleanup generated coverage directory for DummyPackage
+    rm(joinpath(@__DIR__, "DummyPackage", "coverage"); force=true, recursive=true)
+end
+
+
 # automated QA
 import Aqua
 Aqua.test_all(LocalCoverage)

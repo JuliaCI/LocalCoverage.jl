@@ -98,7 +98,7 @@ You can compare two coverage JSON summaries (either from file paths or directly 
 compare_coverage_json_summaries("old-summary.json", "new-summary.json")
 ```
 
-You can also integrate this check directly into `generate_coverage()`, which is very useful for continuous integration (CI) environments to fail a build if coverage drops:
+You can also integrate this check directly into `generate_coverage()`, which is very useful for continuous integration (CI) environments to fail a build if coverage drops. If the `json_comparison_summary_filename` file is missing, it's an automatic pass:
 
 ```julia
 # Runs tests, generates the current summary, prints a comparison table against
