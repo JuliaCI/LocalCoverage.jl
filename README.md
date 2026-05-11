@@ -11,12 +11,15 @@ This is a collection of trivial functions to facilitate generating and exploring
 ```julia
 Pkg.add("LocalCoverage")
 ```
+
 or `]add LocalCoverage` from the Julia REPL.
 
 ### Optional Dependencies
+
 The package has several optional features which require additional dependencies.
 [`lcov`](https://github.com/linux-test-project/lcov) is required for generating HTML
 output.  You can install it via
+
 - Debian/Ubuntu: `sudo apt install lcov`
 - Arch/Manjaro: `yay -S lcov`
 
@@ -25,6 +28,7 @@ Note that the code in this package assumes a reasonably recent `lcov` version wh
 `LocalCoverage` also provides an option to generate a
 [Cobertura](https://cobertura.github.io/cobertura/) XML, which is used by JVM-related test
 suites such as Jenkins.  This can be done either with:
+
 - The native Julia implementation via the `write_lcov_to_xml` function,
 - The original implementation using the `generate_xml` function.
 
@@ -39,33 +43,57 @@ with packages added with the `Pkg.dev` installation option (which allows for eas
 manipulation of the package directory).
 
 To generate test coverage data do
+
 ```julia
 using LocalCoverage
 # pkg is the package name as a string, e.g. "LocalCoverage"
 generate_coverage(pkg = nothing; run_test = true) # defaults shown
 ```
+
 You can then navigate to the `coverage` subdirectory of the package directory (e.g.
 `~/.julia/dev/PackageName/coverage`) and see the generated coverage summaries. Note that the test execution step may be skipped if `*.cov` files were already generated (possibly by some external package).
 
 To generate, and optionally open, the coverage report HTML do
+
 ```julia
 html_coverage(coverage::PackageCoverage; open = false, dir = tempdir()) # defaults shown
 ```
 
-To generate a Jest-compatible `coverage-summary.json` report, pass the `json_summary = true` option to `generate_coverage()` (optionally specifying the filename via `json_filename`):
+To generate a Jest-compatible `coverage-summary.json` report, pass the `json_summary = true` option to `generate_coverage()` (optionally specifying the filename via `json_summary_filename`):
+
 ```julia
-generate_coverage(pkg = nothing; json_summary = true, json_filename = "coverage-summary.json") # defaults shown
+generate_coverage(pkg = nothing; json_summary = true, json_summary_filename = "coverage-summary.json") # defaults shown
 ```
+
 If `test_args` are provided, the top level `"total"` key is replaced with the name of the test set.
 
 To generate a Jest-compatible `coverage-summary.json` report from existing `PackageCoverage` data do
+
 ```julia
 generate_json_summary(coverage::PackageCoverage, filename = "coverage-summary.json"; test_args = [""]) # defaults shown
 ```
 
+### Coverage Delta and Comparison (CI)
 
+You can compare two coverage JSON summaries (either from file paths or directly from JSON strings) to print a delta table and check if coverage has decreased:
+
+```julia
+# Compare two summaries. Returns true if coverage did not decrease, false if it did.
+compare_coverage_json_summaries("old-summary.json", "new-summary.json")
+```
+
+You can also integrate this check directly into `generate_coverage()`, which is very useful for continuous integration (CI) environments to fail a build if coverage drops:
+
+```julia
+# Runs tests, generates the current summary, prints a comparison table against
+# "previous-summary.json", and throws an error if overall coverage decreased.
+generate_coverage(pkg; 
+                  json_comparison_summary_filename = "previous-summary.json",
+                  json_summary_comparison_fail_on_decrease = true)
+```
 
 A utility method is also provided to easily print coverage statistics and exit with a status reflecting if some given target coverage was met. It can be used from a shell by doing
+
 ```bash
 julia --project -e'using LocalCoverage; report_coverage_and_exit(target_coverage=90)'
 ```
