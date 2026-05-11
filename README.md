@@ -75,6 +75,8 @@ To generate, and optionally open, the coverage report HTML do
 html_coverage(coverage::PackageCoverage; open = false, dir = tempdir()) # defaults shown
 ```
 
+### Coverage summary JSON output
+
 To generate a Jest-compatible `coverage-summary.json` report, pass the `json_summary = true` option to `generate_coverage()` (optionally specifying the filename via `json_summary_filename`):
 
 ```julia
@@ -88,6 +90,35 @@ To generate a Jest-compatible `coverage-summary.json` report from existing `Pack
 ```julia
 generate_json_summary(coverage::PackageCoverage, filename = "coverage-summary.json"; test_args = [""]) # defaults shown
 ```
+
+#### JSON Summary Schema
+
+The JSON summary mimics [Jest's standard `json-summary` reporter format](https://stackoverflow.com/a/60968723) ([relevant section of Jest docs](https://jestjs.io/docs/configuration#coveragereporters-arraystring--string-options)). It contains a top-level key for the package total (or the name of the test set if customized), followed by keys for each individual tracked file path.
+
+Each section contains sub-metrics for `lines`, `statements`, `functions`, and `branches` with the following structure:
+* `total`: Total number of lines tracked.
+* `covered`: Number of lines hit.
+* `skipped`: Always `0` (included for compatibility).
+* `pct`: Coverage percentage (as a float).
+
+```json
+{
+  "total": {
+    "lines": { "total": 10, "covered": 5, "skipped": 0, "pct": 50.0 },
+    "statements": { "total": 10, "covered": 5, "skipped": 0, "pct": 50.0 },
+    "functions": { "total": 10, "covered": 5, "skipped": 0, "pct": 50.0 },
+    "branches": { "total": 10, "covered": 5, "skipped": 0, "pct": 50.0 }
+  },
+  "src/bar.jl": {
+    "lines": { "total": 5, "covered": 2, "skipped": 0, "pct": 40.0 },
+    "statements": { "total": 5, "covered": 2, "skipped": 0, "pct": 40.0 },
+    "functions": { "total": 5, "covered": 2, "skipped": 0, "pct": 40.0 },
+    "branches": { "total": 5, "covered": 2, "skipped": 0, "pct": 40.0 }
+  },
+  ...
+}
+```
+
 
 ### Coverage Delta and Comparison (CI)
 
