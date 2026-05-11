@@ -50,6 +50,22 @@ using LocalCoverage
 generate_coverage(pkg = nothing; run_test = true) # defaults shown
 ```
 
+You'll see output during testing like:
+
+```text
+┌─────────────────────┬───────┬─────┬──────┬──────┬──────────┐
+│ Filename            │ Lines │ Hit │ Miss │    % │ Gaps     │
+├─────────────────────┼───────┼─────┼──────┼──────┼──────────┤
+│ src/DummyPackage.jl │     1 │   0 │    1 │   0% │ 6        │
+│ src/bar.jl          │     2 │   1 │    1 │  50% │ 3        │
+│ src/corge/corge.jl  │     1 │   1 │    0 │ 100% │          │
+│ src/corge/grault.jl │     1 │   0 │    1 │   0% │ 2        │
+│ src/qux.jl          │     2 │   0 │    2 │   0% │ 2, 5     │
+├─────────────────────┼───────┼─────┼──────┼──────┼──────────┤
+│ TOTAL               │     7 │   2 │    5 │  29% │          │
+└─────────────────────┴───────┴─────┴──────┴──────┴──────────┘
+```
+
 You can then navigate to the `coverage` subdirectory of the package directory (e.g.
 `~/.julia/dev/PackageName/coverage`) and see the generated coverage summaries. Note that the test execution step may be skipped if `*.cov` files were already generated (possibly by some external package).
 
@@ -90,6 +106,21 @@ You can also integrate this check directly into `generate_coverage()`, which is 
 generate_coverage(pkg; 
                   json_comparison_summary_filename = "previous-summary.json",
                   json_summary_comparison_fail_on_decrease = true)
+```
+
+The comparison output looks like:
+
+```text
+┌─────────────────────┬──────────────┬──────────────┬────────┐
+│ File/Section        │ Old Coverage │ New Coverage │  Delta │
+├─────────────────────┼──────────────┼──────────────┼────────┤
+│ total               │        20.0% │       28.57% │ +8.57% │
+│ src/DummyPackage.jl │            - │         0.0% │      - │
+│ src/bar.jl          │        20.0% │        50.0% │ +30.0% │
+│ src/corge/corge.jl  │            - │       100.0% │      - │
+│ src/corge/grault.jl │            - │         0.0% │      - │
+│ src/qux.jl          │            - │         0.0% │      - │
+└─────────────────────┴──────────────┴──────────────┴────────┘
 ```
 
 A utility method is also provided to easily print coverage statistics and exit with a status reflecting if some given target coverage was met. It can be used from a shell by doing
