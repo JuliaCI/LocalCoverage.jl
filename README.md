@@ -114,8 +114,7 @@ Each section contains sub-metrics for `lines`, `statements`, `functions`, and `b
     "statements": { "total": 5, "covered": 2, "skipped": 0, "pct": 40.0 },
     "functions": { "total": 5, "covered": 2, "skipped": 0, "pct": 40.0 },
     "branches": { "total": 5, "covered": 2, "skipped": 0, "pct": 40.0 }
-  },
-  ...
+  }
 }
 ```
 
