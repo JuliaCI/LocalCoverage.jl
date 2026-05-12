@@ -480,6 +480,38 @@ Generate a coverage JSON summary in the package `coverage` directory, mimicking 
 of the Jest `json-summary` reporter.
 
 If `test_args` are provided, the top level `"total"` key is replaced with the name of the test set.
+
+Args:
+    coverage (PackageCoverage): Coverage metrics evaluated for the package.
+    filename (str, optional): Filename of the generated JSON summary. Defaults to "coverage-summary.json".
+    test_args (list of str, optional): Arguments passed to `Pkg.test`. Defaults to `[""]`.
+
+Returns:
+    str: The absolute path to the generated JSON summary file.
+
+JSON Schema:
+    The output JSON file maps each source file (and a package `"total"` or custom test set name)
+    to a set of coverage metrics (`lines`, `statements`, `functions`, and `branches`):
+
+    {
+        "total": {
+            "lines": {"total": int, "covered": int, "skipped": int, "pct": float},
+            "statements": {"total": int, "covered": int, "skipped": int, "pct": float},
+            "functions": {"total": int, "covered": int, "skipped": int, "pct": float},
+            "branches": {"total": int, "covered": int, "skipped": int, "pct": float}
+        },
+        "src/file.jl": {
+            "lines": {"total": int, "covered": int, "skipped": int, "pct": float},
+            "statements": {"total": int, "covered": int, "skipped": int, "pct": float},
+            "functions": {"total": int, "covered": int, "skipped": int, "pct": float},
+            "branches": {"total": int, "covered": int, "skipped": int, "pct": float}
+        }
+    }
+
+Note:
+    Since Julia only natively tracks line-level coverage, the `statements`, `functions`,
+    and `branches` fields are populated using the line coverage statistics to conform to
+    the Jest JSON schema.
 """
 function generate_json_summary(coverage::PackageCoverage, filename="coverage-summary.json"; test_args=[""])
     # Determine the top-level key name
