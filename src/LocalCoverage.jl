@@ -926,21 +926,31 @@ function compare_coverage_json_summaries(old_data::AbstractDict, new_data::Abstr
     # Get all keys to compare using Set union
     keys_all = collect(keys(new_data) ∪ keys(old_data))
 
-    # Build rows for the PrettyTable as a 2D Matrix
-    rows = Matrix{Any}(undef, length(keys_all), 4)
-    for (i, k) in enumerate(keys_all)
-        old_val = haskey(old_data, k) ? old_data[k]["lines"]["pct"] : "-"
-        new_val = haskey(new_data, k) ? new_data[k]["lines"]["pct"] : "-"
-        
-        delta_str = "-"
+    # Helper to format coverage values for display: returns (old_str, new_str, delta_str)
+    function format_coverage_row(old_val, new_val)
+        # Calculate delta if both are numbers
         if old_val isa Number && new_val isa Number
             delta = round(new_val - old_val, digits=2)
             delta_str = delta >= 0 ? "+$delta%" : "$delta%"
+        else
+            delta_str = "-"
         end
-        
+
+        # Format percentage strings
         old_pct_str = old_val isa Number ? "$old_val%" : old_val
         new_pct_str = new_val isa Number ? "$new_val%" : new_val
-        
+
+        return (old_pct_str, new_pct_str, delta_str)
+    end
+
+    # Build rows for the PrettyTable as a 2D Matrix
+    rows = Matrix{Any}(undef, length(keys_all), 4)
+    for (i, k) in enumerate(keys_all)
+        old_val = get_pct(old_data, k; default="-")
+        new_val = get_pct(new_data, k; default="-")
+
+        old_pct_str, new_pct_str, delta_str = format_coverage_row(old_val, new_val)
+
         rows[i, 1] = k
         rows[i, 2] = old_pct_str
         rows[i, 3] = new_pct_str
