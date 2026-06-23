@@ -922,13 +922,10 @@ function compare_coverage_json_summaries(old_data::AbstractDict, new_data::Abstr
     # Extract overall coverage percentages
     old_pct = get_pct(old_data, old_key; default=nothing)
     new_pct = get_pct(new_data, new_key; default=nothing)
-    keys_all = collect(keys(new_data))
-    for k in keys(old_data)
-        if !(k in keys_all)
-            push!(keys_all, k)
-        end
-    end
-    
+
+    # Get all keys to compare using Set union
+    keys_all = collect(keys(new_data) ∪ keys(old_data))
+
     # Build rows for the PrettyTable as a 2D Matrix
     rows = Matrix{Any}(undef, length(keys_all), 4)
     for (i, k) in enumerate(keys_all)
