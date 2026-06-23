@@ -78,8 +78,7 @@ function test_coverage(pkg;
                           test_args = test_args,
                           folder_list = folder_list,
                           file_list = file_list,
-                          json_summary = true,
-                          json_summary_filename = "coverage-summary-direct.json")
+                          json_summary = JSONSummaryOptions(filename = "coverage-summary-direct.json"))
         @test isfile(direct_json)
         direct_content = read(direct_json, String)
         @test occursin(test_args == [""] ? "\"total\":" : "\"" * join(test_args, " ") * "\":", direct_content)
@@ -222,14 +221,14 @@ end
         rm(cov_dir; force=true, recursive=true)
         
         # Scenario: old file coverage is lower (20.0%) than generated coverage -> should pass
-        cov = generate_coverage("DummyPackage"; run_test=true, json_comparison_summary_filename=dec_file, json_summary_comparison_fail_on_decrease=false)
+        cov = generate_coverage("DummyPackage"; run_test=true, json_summary=JSONSummaryOptions(comparison_filename=dec_file, comparison_fail_on_decrease=false))
         @test isfile(joinpath(cov_dir, "coverage-summary.json"))
         
         # Scenario: old file coverage is higher (80.0%) than generated coverage (~28.57%) -> should fail
-        @test_throws ErrorException generate_coverage("DummyPackage"; run_test=true, json_comparison_summary_filename=inc_file, json_summary_comparison_fail_on_decrease=true)
+        @test_throws ErrorException generate_coverage("DummyPackage"; run_test=true, json_summary=JSONSummaryOptions(comparison_filename=inc_file, comparison_fail_on_decrease=true))
 
         # Scenario: old file is missing -> should pass automatically
-        cov = generate_coverage("DummyPackage"; run_test=true, json_comparison_summary_filename="missing_file_abc.json", json_summary_comparison_fail_on_decrease=true)
+        cov = generate_coverage("DummyPackage"; run_test=true, json_summary=JSONSummaryOptions(comparison_filename="missing_file_abc.json", comparison_fail_on_decrease=true))
         @test isfile(joinpath(cov_dir, "coverage-summary.json"))
         
         # Cleanup

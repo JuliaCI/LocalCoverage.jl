@@ -77,10 +77,10 @@ html_coverage(coverage::PackageCoverage; open = false, dir = tempdir()) # defaul
 
 ### Coverage summary JSON output
 
-To generate a Jest-compatible `coverage-summary.json` report, pass the `json_summary = true` option to `generate_coverage()` (optionally specifying the filename via `json_summary_filename`):
+To generate a Jest-compatible `coverage-summary.json` report, pass a `JSONSummaryOptions` instance to `generate_coverage()` via the `json_summary` keyword argument:
 
 ```julia
-generate_coverage(pkg = nothing; json_summary = true, json_summary_filename = "coverage-summary.json") # defaults shown
+generate_coverage(pkg = nothing; json_summary = JSONSummaryOptions()) # defaults shown
 ```
 
 If `test_args` are provided, the top level `"total"` key is replaced with the name of the test set.
@@ -90,6 +90,15 @@ To generate a Jest-compatible `coverage-summary.json` report from existing `Pack
 ```julia
 generate_json_summary(coverage::PackageCoverage, filename = "coverage-summary.json"; test_args = [""]) # defaults shown
 ```
+
+#### `JSONSummaryOptions` Fields
+
+`JSONSummaryOptions` has the following fields (with their default values when calling `JSONSummaryOptions()`):
+
+* `write::Bool = true`: Whether to write the coverage JSON summary to disk.
+* `filename::String = "coverage-summary.json"`: Filename of the generated JSON summary.
+* `comparison_filename::Union{Nothing,String} = nothing`: Path/string of previous coverage JSON summary to compare against.
+* `comparison_fail_on_decrease::Bool = false`: Determines whether to fail (throw an error) if the coverage has decreased.
 
 #### JSON Summary Schema
 
@@ -128,14 +137,16 @@ You can compare two coverage JSON summaries (either from file paths or directly 
 compare_coverage_json_summaries("old-summary.json", "new-summary.json")
 ```
 
-You can also integrate this check directly into `generate_coverage()`, which is very useful for continuous integration (CI) environments to fail a build if coverage drops. If the `json_comparison_summary_filename` file is missing, it's an automatic pass:
+You can also integrate this check directly into `generate_coverage()`, which is very useful for continuous integration (CI) environments to fail a build if coverage drops. If the `comparison_filename` file is missing, it's an automatic pass:
 
 ```julia
 # Runs tests, generates the current summary, prints a comparison table against
 # "previous-summary.json", and throws an error if overall coverage decreased.
 generate_coverage(pkg; 
-                  json_comparison_summary_filename = "previous-summary.json",
-                  json_summary_comparison_fail_on_decrease = true)
+                  json_summary = JSONSummaryOptions(
+                      comparison_filename = "previous-summary.json",
+                      comparison_fail_on_decrease = true
+                  ))
 ```
 
 The comparison output looks like:
