@@ -910,15 +910,18 @@ function compare_coverage_json_summaries(old_data::AbstractDict, new_data::Abstr
         end
         return "total" # fallback
     end
-    
+
+    # Helper to safely get lines.pct from a data dict, returning default if not found
+    function get_pct(data, key; default=nothing)
+        haskey(data, key) ? data[key]["lines"]["pct"] : default
+    end
+
     old_key = find_overall_key(old_data)
     new_key = find_overall_key(new_data)
-    
+
     # Extract overall coverage percentages
-    old_pct = haskey(old_data, old_key) ? old_data[old_key]["lines"]["pct"] : nothing
-    new_pct = haskey(new_data, new_key) ? new_data[new_key]["lines"]["pct"] : nothing
-    
-    # Get all keys to compare
+    old_pct = get_pct(old_data, old_key; default=nothing)
+    new_pct = get_pct(new_data, new_key; default=nothing)
     keys_all = collect(keys(new_data))
     for k in keys(old_data)
         if !(k in keys_all)
