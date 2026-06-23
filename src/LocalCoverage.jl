@@ -856,6 +856,32 @@ _percent(lines_total::Integer, lines_covered::Integer) = lines_total == 0 ? "0.0
 """
 $(SIGNATURES)
 
+Check if a string looks like JSON content (starts with `{` or `[`, ends with `}` or `]`).
+"""
+function is_json_content(s::AbstractString)
+    t = strip(s)
+    (startswith(t, "{") && endswith(t, "}")) || (startswith(t, "[") && endswith(t, "]"))
+end
+
+"""
+$(SIGNATURES)
+
+Parse a JSON summary from either a file path or inline JSON string.
+"""
+function parse_json_summary(input::AbstractString)
+    if is_json_content(input)
+        return JSON.parse(input; dicttype=OrderedDict{String,Any})
+    elseif isfile(input)
+        return JSON.parsefile(input; dicttype=OrderedDict{String,Any})
+    else
+        # Treat as JSON string (fallback for backwards compatibility)
+        return JSON.parse(input; dicttype=OrderedDict{String,Any})
+    end
+end
+
+"""
+$(SIGNATURES)
+
 Compare two coverage JSON summaries (either as file paths or JSON strings).
 Prints a table of coverage delta information to `io` (defaults to `stdout`).
 Returns `true` if coverage did not decrease, and `false` if it decreased.
@@ -869,20 +895,8 @@ function compare_coverage_json_summaries(old::AbstractString, new::AbstractStrin
         println(io, "No previous coverage summary found. Automatic pass.")
         return true
     end
-    old_data = if is_json(old)
-        JSON.parse(old; dicttype=OrderedDict{String,Any})
-    elseif isfile(old)
-        JSON.parsefile(old; dicttype=OrderedDict{String,Any})
-    else
-        JSON.parse(old; dicttype=OrderedDict{String,Any})
-    end
-    new_data = if is_json(new)
-        JSON.parse(new; dicttype=OrderedDict{String,Any})
-    elseif isfile(new)
-        JSON.parsefile(new; dicttype=OrderedDict{String,Any})
-    else
-        JSON.parse(new; dicttype=OrderedDict{String,Any})
-    end
+    old_data = parse_json_summary(old)
+    new_data = parse_json_summary(new)
     return compare_coverage_json_summaries(old_data, new_data, io)
 end
 
