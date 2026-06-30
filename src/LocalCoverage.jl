@@ -496,7 +496,7 @@ Args:
     - `test_args` (list of str, optional): Arguments passed to `Pkg.test`. Defaults to `[""]`.
 
 Returns:
-    str: The absolute path to the generated JSON summary file.
+    The absolute path to the generated JSON summary file.
 
 JSON Schema:
     The output JSON file maps each source file (and a package `"total"` or custom test set name)
